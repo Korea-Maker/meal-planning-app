@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   transpilePackages: ['@meal-planning/shared-types', '@meal-planning/constants'],
   images: {
     remotePatterns: [

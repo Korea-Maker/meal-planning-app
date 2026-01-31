@@ -1,7 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd apps/web && pnpm build",
-  "installCommand": "pnpm install",
-  "outputDirectory": "apps/web/.next",
-  "regions": ["icn1"]
+  "builds": [
+    {
+      "src": "apps/web/package.json",
+      "use": "@vercel/next",
+      "config": {
+        "installCommand": "cd ../.. && pnpm install",
+        "buildCommand": "cd ../.. && pnpm turbo build --filter=@meal-planning/web"
+      }
+    }
+  ],
+  "public": true
 }

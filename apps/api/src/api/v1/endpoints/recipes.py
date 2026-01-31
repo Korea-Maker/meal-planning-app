@@ -1,0 +1,313 @@
+from typing import Annotated, Any
+
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.database import get_db
+from src.core.redis import RedisClient, get_redis
+from src.core.security import get_current_user_id
+from src.schemas.common import ApiResponse, PaginatedResponse
+from src.schemas.recipe import (
+    DiscoverRecipesResponse,
+    ExternalRecipeDetail,
+    ExternalRecipeSource,
+    ExternalSearchResponse,
+    ExternalSourceInfo,
+    RecipeCategory,
+    RecipeCreate,
+    RecipeDifficulty,
+    RecipeResponse,
+    RecipeSearchParams,
+    RecipeUpdate,
+    RecipeWithDetailsResponse,
+    URLExtractionRequest,
+    URLExtractionResponse,
+)
+from src.services.external_recipe import ExternalRecipeService
+from src.services.recipe import RecipeService
+from src.services.url_extractor import URLExtractorService
+
+router = APIRouter()
+
+
+# ==================== Static Routes (must come before dynamic routes) ====================
+
+
+@router.post("", response_model=ApiResponse[RecipeWithDetailsResponse], status_code=status.HTTP_201_CREATED)
+async def create_recipe(
+    data: RecipeCreate,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    service = RecipeService(db)
+    recipe = await service.create_recipe(user_id, data)
+
+    return ApiResponse(
+        success=True,
+        data=RecipeWithDetailsResponse.model_validate(recipe),
+    )
+
+
+@router.get("", response_model=PaginatedResponse[RecipeResponse])
+async def list_recipes(
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    service = RecipeService(db)
+    recipes, meta = await service.get_user_recipes(user_id, page, limit)
+
+    return PaginatedResponse(
+        success=True,
+        data=[RecipeResponse.model_validate(r) for r in recipes],
+        meta=meta,
+    )
+
+
+@router.get("/search", response_model=PaginatedResponse[RecipeResponse])
+async def search_recipes(
+    query: str | None = None,
+    categories: Annotated[list[RecipeCategory] | None, Query()] = None,
+    tags: Annotated[list[str] | None, Query()] = None,
+    difficulty: RecipeDifficulty | None = None,
+    max_prep_time: Annotated[int | None, Query(ge=0)] = None,
+    max_cook_time: Annotated[int | None, Query(ge=0)] = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    service = RecipeService(db)
+    params = RecipeSearchParams(
+        query=query,
+        categories=categories,
+        tags=tags,
+        difficulty=difficulty,
+        max_prep_time=max_prep_time,
+        max_cook_time=max_cook_time,
+        page=page,
+        limit=limit,
+    )
+    recipes, meta = await service.search_recipes(user_id, params)
+
+    return PaginatedResponse(
+        success=True,
+        data=[RecipeResponse.model_validate(r) for r in recipes],
+        meta=meta,
+    )
+
+
+@router.post("/extract-from-url", response_model=URLExtractionResponse)
+async def extract_recipe_from_url(
+    data: URLExtractionRequest,
+    user_id: str = Depends(get_current_user_id),
+    redis: RedisClient = Depends(get_redis),
+):
+    """
+    URL에서 레시피를 추출합니다.
+
+    - Schema.org 구조화 데이터 우선 파싱
+    - GPT fallback (신뢰도 점수 반환)
+    - 24시간 캐싱
+    - 일일 50회 제한
+    """
+    service = URLExtractorService(redis)
+    return await service.extract_recipe_from_url(str(data.url), user_id)
+
+
+# ==================== External Recipe Endpoints ====================
+
+
+@router.get("/discover", response_model=ApiResponse[DiscoverRecipesResponse])
+async def discover_recipes(
+    category: str | None = None,
+    cuisine: str | None = None,
+    number: Annotated[int, Query(ge=1, le=50)] = 20,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
+):
+    """
+    외부 소스에서 다양한 레시피를 발견합니다.
+
+    - Spoonacular와 TheMealDB에서 레시피 추천
+    - 카테고리, 요리 종류로 필터링 가능
+    - 결과 캐싱 (1시간)
+    """
+    service = ExternalRecipeService(db, redis)
+    results = await service.discover_recipes(
+        user_id=user_id,
+        category=category,
+        cuisine=cuisine,
+        number=number,
+    )
+    return ApiResponse(success=True, data=results)
+
+
+@router.get("/search/external", response_model=ApiResponse[ExternalSearchResponse])
+async def search_external_recipes(
+    query: str,
+    source: ExternalRecipeSource | None = None,
+    cuisine: str | None = None,
+    max_ready_time: Annotated[int | None, Query(ge=1, le=300)] = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
+):
+    """
+    외부 소스에서 레시피를 검색합니다.
+
+    - Spoonacular와 TheMealDB 동시 검색
+    - 특정 소스만 검색 가능
+    - 일일 검색 횟수 제한
+    """
+    service = ExternalRecipeService(db, redis)
+    results = await service.search_external(
+        user_id=user_id,
+        query=query,
+        source=source,
+        cuisine=cuisine,
+        max_ready_time=max_ready_time,
+        page=page,
+        limit=limit,
+    )
+    return ApiResponse(success=True, data=results)
+
+
+@router.get("/external/sources", response_model=ApiResponse[list[ExternalSourceInfo]])
+async def get_external_sources(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
+):
+    """사용 가능한 외부 레시피 소스 목록을 반환합니다."""
+    service = ExternalRecipeService(db, redis)
+    sources = await service.get_available_sources()
+    return ApiResponse(success=True, data=sources)
+
+
+@router.get("/external/cuisines", response_model=ApiResponse[list[str]])
+async def get_cuisines(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
+):
+    """사용 가능한 요리 종류(지역) 목록을 반환합니다."""
+    service = ExternalRecipeService(db, redis)
+    cuisines = await service.get_cuisines()
+    return ApiResponse(success=True, data=cuisines)
+
+
+@router.get("/external/categories", response_model=ApiResponse[list[dict[str, Any]]])
+async def get_external_categories(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
+):
+    """사용 가능한 카테고리 목록을 반환합니다."""
+    service = ExternalRecipeService(db, redis)
+    categories = await service.get_categories()
+    return ApiResponse(success=True, data=categories)
+
+
+@router.get("/external/{source}/{external_id}", response_model=ApiResponse[ExternalRecipeDetail | None])
+async def get_external_recipe(
+    source: ExternalRecipeSource,
+    external_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
+):
+    """
+    외부 레시피 상세 정보를 조회합니다.
+
+    - 결과 캐싱 (1시간)
+    """
+    service = ExternalRecipeService(db, redis)
+    recipe = await service.get_external_recipe(source, external_id)
+    return ApiResponse(success=True, data=recipe)
+
+
+@router.post("/import/{source}/{external_id}", response_model=ApiResponse[RecipeWithDetailsResponse])
+async def import_external_recipe(
+    source: ExternalRecipeSource,
+    external_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
+):
+    """
+    외부 레시피를 내 컬렉션으로 가져옵니다.
+
+    - 이미 가져온 레시피는 기존 데이터 반환
+    - 레시피 데이터를 내부 형식으로 변환하여 저장
+    """
+    service = ExternalRecipeService(db, redis)
+    recipe = await service.import_recipe(user_id, source, external_id)
+    return ApiResponse(
+        success=True,
+        data=RecipeWithDetailsResponse.model_validate(recipe),
+    )
+
+
+# ==================== Dynamic Routes (must come after static routes) ====================
+
+
+@router.get("/{recipe_id}", response_model=ApiResponse[RecipeWithDetailsResponse])
+async def get_recipe(
+    recipe_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    service = RecipeService(db)
+    recipe = await service.get_recipe(recipe_id, user_id)
+
+    return ApiResponse(
+        success=True,
+        data=RecipeWithDetailsResponse.model_validate(recipe),
+    )
+
+
+@router.patch("/{recipe_id}", response_model=ApiResponse[RecipeWithDetailsResponse])
+async def update_recipe(
+    recipe_id: str,
+    data: RecipeUpdate,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    service = RecipeService(db)
+    recipe = await service.update_recipe(recipe_id, user_id, data)
+
+    return ApiResponse(
+        success=True,
+        data=RecipeWithDetailsResponse.model_validate(recipe),
+    )
+
+
+@router.delete("/{recipe_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_recipe(
+    recipe_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    service = RecipeService(db)
+    await service.delete_recipe(recipe_id, user_id)
+
+
+@router.post("/{recipe_id}/adjust-servings", response_model=ApiResponse[RecipeWithDetailsResponse])
+async def adjust_servings(
+    recipe_id: str,
+    servings: Annotated[int, Query(ge=1, le=100)],
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    service = RecipeService(db)
+    recipe = await service.adjust_servings(recipe_id, user_id, servings)
+
+    return ApiResponse(
+        success=True,
+        data=RecipeWithDetailsResponse.model_validate(recipe),
+    )

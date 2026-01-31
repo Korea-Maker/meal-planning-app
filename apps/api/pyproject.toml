@@ -1,0 +1,67 @@
+[project]
+name = "meal-planning-api"
+version = "0.1.0"
+description = "AI-powered meal planning API"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # Web framework
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+
+    # Database
+    "sqlalchemy>=2.0.36",
+    "asyncpg>=0.30.0",
+    "alembic>=1.14.0",
+
+    # Redis
+    "redis>=5.2.0",
+
+    # Auth
+    "pyjwt>=2.10.1",
+    "bcrypt>=4.2.1",
+    "httpx>=0.28.1",
+
+    # Validation
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+    "email-validator>=2.2.0",
+
+    # AI & External APIs
+    "openai>=1.58.1",
+
+    # Utils
+    "python-multipart>=0.0.19",
+    "python-jose[cryptography]>=3.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "httpx>=0.28.1",
+    "ruff>=0.8.4",
+    "mypy>=1.14.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true

@@ -10,8 +10,13 @@ class Base(DeclarativeBase):
     pass
 
 
+# Convert postgresql:// to postgresql+asyncpg:// for async driver
+database_url = str(settings.database_url)
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 engine = create_async_engine(
-    str(settings.database_url),
+    database_url,
     echo=settings.debug,
     pool_pre_ping=True,
     pool_size=5,

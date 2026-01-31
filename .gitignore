@@ -58,3 +58,4 @@ pnpm-debug.log*
 
 # OMC (oh-my-claudecode)
 .omc/
+.vercel

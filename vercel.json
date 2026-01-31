@@ -10,5 +10,8 @@
       }
     }
   ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/apps/web/$1" }
+  ],
   "public": true
 }

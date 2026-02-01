@@ -18,6 +18,7 @@ from src.repositories.recipe import RecipeRepository
 from src.schemas.ingredient import IngredientCreate
 from src.schemas.instruction import InstructionCreate
 from src.schemas.recipe import RecipeCreate
+from src.services.translation import TranslationService
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class ExternalRecipeService:
         self.session = session
         self.redis = redis
         self.recipe_repo = RecipeRepository(session)
+        self.translation = TranslationService(redis)
 
     async def discover_recipes(
         self,
@@ -133,6 +135,10 @@ class ExternalRecipeService:
 
         results["total"] = len(results["spoonacular"]) + len(results["themealdb"]) + len(results["foodsafetykorea"]) + len(results["mafra"])
 
+        # 영어 레시피 번역 (Spoonacular, TheMealDB)
+        results["spoonacular"] = await self.translation.translate_recipes_batch(results["spoonacular"], detail=False)
+        results["themealdb"] = await self.translation.translate_recipes_batch(results["themealdb"], detail=False)
+
         await self._cache_result(cache_key, results)
 
         return results
@@ -220,8 +226,11 @@ class ExternalRecipeService:
 
         await self._increment_rate_limit(user_id)
 
+        # 영어 레시피 번역 (Spoonacular, TheMealDB)
+        translated_results = await self.translation.translate_recipes_batch(results, detail=False)
+
         return {
-            "results": results,
+            "results": translated_results,
             "total": total,
             "page": page,
             "limit": limit,
@@ -261,6 +270,8 @@ class ExternalRecipeService:
 
         if result:
             await self._cache_result(cache_key, result)
+            # 영어 레시피 번역 (Spoonacular, TheMealDB)
+            result = await self.translation.translate_recipe_detail(result)
 
         return result
 

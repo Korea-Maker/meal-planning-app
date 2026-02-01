@@ -153,6 +153,14 @@ class FoodSafetyKoreaAdapter:
             "기타",
         ]
 
+    def _normalize_image_url(self, url: str | None) -> str | None:
+        """Normalize image URL to HTTPS (API returns HTTP but redirects to HTTPS)."""
+        if not url:
+            return None
+        if url.startswith("http://"):
+            return url.replace("http://", "https://", 1)
+        return url
+
     def _transform_recipe(self, data: dict) -> dict[str, Any]:
         """Transform Food Safety Korea recipe to internal format."""
         # 이미지: ATT_FILE_NO_MAIN (대표) 우선, 없으면 ATT_FILE_NO_MK (소)
@@ -161,7 +169,7 @@ class FoodSafetyKoreaAdapter:
             "source": "foodsafetykorea",
             "external_id": str(data.get("RCP_SEQ")),
             "title": data.get("RCP_NM", ""),
-            "image_url": image_url if image_url else None,
+            "image_url": self._normalize_image_url(image_url),
             "category": data.get("RCP_PAT2"),
             "cooking_method": data.get("RCP_WAY2"),
             "calories": self._parse_float(data.get("INFO_ENG")),
@@ -196,7 +204,7 @@ class FoodSafetyKoreaAdapter:
             "external_id": str(data.get("RCP_SEQ")),
             "title": data.get("RCP_NM", ""),
             "description": f"{category} 요리 - {data.get('RCP_WAY2', '')} (중량: {data.get('INFO_WGT', 'N/A')})",
-            "image_url": image_url if image_url else None,
+            "image_url": self._normalize_image_url(image_url),
             "prep_time_minutes": None,
             "cook_time_minutes": None,
             "servings": 4,

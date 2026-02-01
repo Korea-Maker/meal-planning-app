@@ -11,7 +11,7 @@ COPY . .
 
 # Railway uses PORT environment variable
 ENV PORT=8000
-EXPOSE $PORT
+EXPOSE 8000
 
-# Run the application
-CMD uvicorn src.main:app --host 0.0.0.0 --port $PORT
+# Run the application with shell to expand $PORT
+CMD ["/bin/sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

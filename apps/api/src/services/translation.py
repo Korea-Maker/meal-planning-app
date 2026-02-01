@@ -1,10 +1,10 @@
-"""Translation service using Argos Translate for English to Korean translation."""
+"""Translation service using LibreTranslate API for English to Korean translation."""
 
 import hashlib
-import json
 import logging
-from functools import lru_cache
 from typing import Any
+
+import httpx
 
 from src.core.redis import RedisClient
 
@@ -13,78 +13,39 @@ logger = logging.getLogger(__name__)
 CACHE_TTL_SECONDS = 86400 * 7  # 7일 캐시
 CACHE_KEY_PREFIX = "translation:en_ko"
 
-# 번역 불필요한 필드 (숫자, 단위 등)
-SKIP_TRANSLATION_FIELDS = {"external_id", "source", "calories", "servings", "prep_time_minutes", "cook_time_minutes"}
+# LibreTranslate 공용 인스턴스 (무료)
+LIBRETRANSLATE_URLS = [
+    "https://libretranslate.com",
+    "https://translate.argosopentech.com",
+    "https://translate.terraprint.co",
+]
 
 
 class TranslationService:
     """Service for translating recipe content from English to Korean."""
 
-    _translator = None
-    _initialized = False
-
     def __init__(self, redis: RedisClient | None = None):
         self.redis = redis
+        self._api_url: str | None = None
 
-    @classmethod
-    def _ensure_initialized(cls) -> bool:
-        """Initialize Argos Translate with English to Korean model."""
-        if cls._initialized:
-            return cls._translator is not None
+    async def _get_working_api(self) -> str | None:
+        """Find a working LibreTranslate API endpoint."""
+        if self._api_url:
+            return self._api_url
 
-        try:
-            import argostranslate.package
-            import argostranslate.translate
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            for url in LIBRETRANSLATE_URLS:
+                try:
+                    response = await client.get(f"{url}/languages")
+                    if response.status_code == 200:
+                        self._api_url = url
+                        logger.info(f"Using LibreTranslate API: {url}")
+                        return url
+                except Exception:
+                    continue
 
-            # 설치된 언어 확인
-            installed_languages = argostranslate.translate.get_installed_languages()
-            en_lang = None
-            ko_lang = None
-
-            for lang in installed_languages:
-                if lang.code == "en":
-                    en_lang = lang
-                elif lang.code == "ko":
-                    ko_lang = lang
-
-            # 언어 패키지가 없으면 다운로드
-            if en_lang is None or ko_lang is None:
-                logger.info("Downloading English-Korean translation package...")
-                argostranslate.package.update_package_index()
-                available_packages = argostranslate.package.get_available_packages()
-
-                for pkg in available_packages:
-                    if pkg.from_code == "en" and pkg.to_code == "ko":
-                        logger.info(f"Installing package: {pkg}")
-                        argostranslate.package.install_from_path(pkg.download())
-                        break
-
-                # 재확인
-                installed_languages = argostranslate.translate.get_installed_languages()
-                for lang in installed_languages:
-                    if lang.code == "en":
-                        en_lang = lang
-                    elif lang.code == "ko":
-                        ko_lang = lang
-
-            if en_lang and ko_lang:
-                cls._translator = en_lang.get_translation(ko_lang)
-                cls._initialized = True
-                logger.info("Argos Translate initialized successfully")
-                return True
-            else:
-                logger.warning("Could not find English-Korean translation package")
-                cls._initialized = True
-                return False
-
-        except ImportError:
-            logger.warning("argostranslate not installed, translation disabled")
-            cls._initialized = True
-            return False
-        except Exception as e:
-            logger.error(f"Failed to initialize Argos Translate: {e}")
-            cls._initialized = True
-            return False
+        logger.warning("No working LibreTranslate API found")
+        return None
 
     def _get_cache_key(self, text: str) -> str:
         """Generate cache key for translation."""
@@ -114,16 +75,34 @@ class TranslationService:
         except Exception as e:
             logger.warning(f"Failed to cache translation: {e}")
 
-    def _translate_text(self, text: str) -> str:
-        """Translate text using Argos Translate."""
+    async def _translate_text(self, text: str) -> str:
+        """Translate text using LibreTranslate API."""
         if not text or not text.strip():
             return text
 
-        if not self._ensure_initialized() or self._translator is None:
+        api_url = await self._get_working_api()
+        if not api_url:
             return text
 
         try:
-            return self._translator.translate(text)
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    f"{api_url}/translate",
+                    json={
+                        "q": text,
+                        "source": "en",
+                        "target": "ko",
+                        "format": "text",
+                    },
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    return data.get("translatedText", text)
+                else:
+                    logger.warning(f"Translation API error: {response.status_code}")
+                    return text
+
         except Exception as e:
             logger.error(f"Translation error: {e}")
             return text
@@ -143,7 +122,7 @@ class TranslationService:
             return cached
 
         # 번역 수행
-        translated = self._translate_text(text)
+        translated = await self._translate_text(text)
 
         # 캐시 저장
         if translated != text:
@@ -155,7 +134,7 @@ class TranslationService:
         """Translate recipe preview (title, summary)."""
         translated = recipe.copy()
 
-        # 영어 소스만 번역
+        # 한국어 소스는 번역 스킵
         source = recipe.get("source", "")
         if source in ("foodsafetykorea", "mafra"):
             return translated
@@ -178,7 +157,7 @@ class TranslationService:
         """Translate full recipe details."""
         translated = recipe.copy()
 
-        # 영어 소스만 번역
+        # 한국어 소스는 번역 스킵
         source = recipe.get("source", "")
         if source in ("foodsafetykorea", "mafra"):
             return translated
@@ -238,10 +217,3 @@ class TranslationService:
             else:
                 translated.append(await self.translate_recipe_preview(recipe))
         return translated
-
-
-# 싱글톤 인스턴스 (Redis 없이 사용 가능)
-@lru_cache()
-def get_translation_service() -> TranslationService:
-    """Get translation service singleton without Redis."""
-    return TranslationService()

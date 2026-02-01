@@ -68,7 +68,7 @@ class MealPlanWithSlotsResponse(MealPlanResponse):
 
 
 # 외부 레시피 → 식사계획 직접 추가를 위한 스키마
-ExternalSource = Literal["spoonacular", "themealdb"]
+ExternalSource = Literal["spoonacular", "themealdb", "foodsafetykorea", "mafra"]
 
 
 class ExternalMealSlotCreate(BaseModel):

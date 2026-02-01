@@ -75,9 +75,10 @@ class MafraAdapter:
                 if category:
                     rows = [r for r in rows if r.get("TY_NM") == category]
 
+                total_cnt = grid_data.get("totalCnt", len(rows))
                 return {
                     "results": [self._transform_recipe(r) for r in rows],
-                    "totalResults": grid_data.get("totalCnt", len(rows)),
+                    "totalResults": int(total_cnt) if total_cnt else len(rows),
                 }
         except httpx.HTTPError as e:
             logger.error(f"MAFRA search error: {e}")

@@ -72,9 +72,10 @@ class FoodSafetyKoreaAdapter:
                 if category:
                     rows = [r for r in rows if r.get("RCP_PAT2") == category]
 
+                total_count = cookrcp01.get("total_count", len(rows))
                 return {
                     "results": [self._transform_recipe(r) for r in rows],
-                    "totalResults": cookrcp01.get("total_count", len(rows)),
+                    "totalResults": int(total_count) if total_count else len(rows),
                 }
         except httpx.HTTPError as e:
             logger.error(f"FoodSafetyKorea search error: {e}")

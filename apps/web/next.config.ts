@@ -21,6 +21,14 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'www.themealdb.com',
       },
+      {
+        protocol: 'http',
+        hostname: 'www.foodsafetykorea.go.kr',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.foodsafetykorea.go.kr',
+      },
     ],
   },
 }

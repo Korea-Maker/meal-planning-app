@@ -12,8 +12,7 @@ COPY . .
 # Make start script executable
 RUN chmod +x start.sh
 
-# Railway uses PORT environment variable
-ENV PORT=8000
+# Expose default port (Railway overrides with PORT env var)
 EXPOSE 8000
 
 # Run the application

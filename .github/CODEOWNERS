@@ -1,0 +1,33 @@
+# CODEOWNERS - 코드 소유자 정의
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# 기본 소유자 (모든 파일)
+* @owner
+
+# 보안 관련 파일 - 보안팀 리뷰 필수
+/.github/workflows/security.yml @security-team @owner
+/.github/workflows/codeql.yml @security-team @owner
+/.github/workflows/container-security.yml @security-team @owner
+/.github/workflows/release.yml @security-team @owner
+/SECURITY.md @security-team @owner
+/.gitleaks.toml @security-team @owner
+/.pre-commit-config.yaml @security-team @owner
+
+# API 보안 관련
+/apps/api/src/core/security.py @security-team @backend-team
+/apps/api/src/api/v1/auth/ @security-team @backend-team
+
+# 인프라/DevOps
+/apps/api/Dockerfile @devops-team @owner
+/.github/ @devops-team @owner
+/.hadolint.yaml @devops-team @owner
+/.trivy.yaml @devops-team @owner
+
+# Frontend
+/apps/web/ @frontend-team @owner
+
+# Backend
+/apps/api/ @backend-team @owner
+
+# 공유 패키지
+/packages/ @owner

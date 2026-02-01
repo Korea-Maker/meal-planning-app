@@ -47,7 +47,7 @@ class TestAuthService:
 
         data = RegisterRequest(
             email="test@example.com",
-            password="testpassword123",
+            password="TestPassword123",
             name="Test User",
         )
 
@@ -66,7 +66,7 @@ class TestAuthService:
 
         data = RegisterRequest(
             email="existing@example.com",
-            password="testpassword123",
+            password="TestPassword123",
             name="Test User",
         )
 
@@ -77,7 +77,7 @@ class TestAuthService:
         """Test successful login."""
         from src.core.security import hash_password
 
-        hashed_pw = hash_password("testpassword123")
+        hashed_pw = hash_password("TestPassword123")
         auth_service.user_repo.get_by_email = AsyncMock(
             return_value=User(
                 id="user-123",
@@ -90,7 +90,7 @@ class TestAuthService:
 
         data = LoginRequest(
             email="test@example.com",
-            password="testpassword123",
+            password="TestPassword123",
         )
 
         user, tokens = await auth_service.login(data)
@@ -104,7 +104,7 @@ class TestAuthService:
 
         data = LoginRequest(
             email="nonexistent@example.com",
-            password="testpassword123",
+            password="TestPassword123",
         )
 
         with pytest.raises(AuthenticationError, match="Invalid email or password"):
@@ -114,7 +114,7 @@ class TestAuthService:
         """Test login fails with invalid password."""
         from src.core.security import hash_password
 
-        hashed_pw = hash_password("correctpassword")
+        hashed_pw = hash_password("CorrectPass123")
         auth_service.user_repo.get_by_email = AsyncMock(
             return_value=User(
                 id="user-123",
@@ -127,7 +127,7 @@ class TestAuthService:
 
         data = LoginRequest(
             email="test@example.com",
-            password="wrongpassword",
+            password="WrongPass123",
         )
 
         with pytest.raises(AuthenticationError, match="Invalid email or password"):
@@ -384,12 +384,12 @@ class TestSecurityFunctions:
         """Test password hashing."""
         from src.core.security import hash_password, verify_password
 
-        password = "testpassword123"
+        password = "TestPassword123"
         hashed = hash_password(password)
 
         assert hashed != password
         assert verify_password(password, hashed)
-        assert not verify_password("wrongpassword", hashed)
+        assert not verify_password("WrongPass123", hashed)
 
     def test_create_access_token(self):
         """Test access token creation."""

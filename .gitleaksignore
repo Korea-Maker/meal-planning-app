@@ -1,0 +1,6 @@
+# Gitleaks ignore file
+# Add commit hashes or fingerprints of known false positives
+
+# Example format:
+# <commit-hash>:<file>:<rule>:<line>
+# or fingerprints from gitleaks output

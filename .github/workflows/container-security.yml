@@ -1,0 +1,235 @@
+name: Container Security
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/Dockerfile'
+      - 'apps/api/**'
+      - '.github/workflows/container-security.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/Dockerfile'
+      - 'apps/api/**'
+      - '.github/workflows/container-security.yml'
+
+env:
+  DOCKERFILE_PATH: apps/api/Dockerfile
+  IMAGE_NAME: meal-planning-api
+  REGISTRY: ghcr.io
+
+jobs:
+  dockerfile-lint:
+    name: Dockerfile 린트 검사
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout 코드
+        uses: actions/checkout@v4.2.2
+
+      - name: Hadolint 실행
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ env.DOCKERFILE_PATH }}
+          format: sarif
+          output-file: hadolint-results.sarif
+          no-fail: true
+
+      - name: Hadolint 결과 업로드
+        uses: github/codeql-action/upload-sarif@v3.27.9
+        if: always()
+        with:
+          sarif_file: hadolint-results.sarif
+          category: dockerfile-lint
+
+      - name: Hadolint 요약 출력
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ env.DOCKERFILE_PATH }}
+          format: tty
+
+  container-scan:
+    name: 컨테이너 취약점 스캔
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout 코드
+        uses: actions/checkout@v4.2.2
+
+      - name: Docker Buildx 설정
+        uses: docker/setup-buildx-action@v3.7.1
+
+      - name: Docker 이미지 빌드
+        uses: docker/build-push-action@v6.10.0
+        with:
+          context: ./apps/api
+          file: ${{ env.DOCKERFILE_PATH }}
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Grype 취약점 스캔
+        uses: anchore/scan-action@v5.0.0
+        id: scan
+        with:
+          image: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          fail-build: true
+          severity-cutoff: high
+          output-format: sarif
+
+      - name: 취약점 스캔 결과 업로드
+        uses: github/codeql-action/upload-sarif@v3.27.9
+        if: always()
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+          category: container-vulnerabilities
+
+      - name: Grype 상세 리포트 생성
+        uses: anchore/scan-action@v5.0.0
+        if: always()
+        with:
+          image: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          fail-build: false
+          output-format: table
+
+  build-test:
+    name: Docker 빌드 및 시작 테스트
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout 코드
+        uses: actions/checkout@v4.2.2
+
+      - name: Docker Buildx 설정
+        uses: docker/setup-buildx-action@v3.7.1
+
+      - name: Docker 이미지 빌드
+        uses: docker/build-push-action@v6.10.0
+        with:
+          context: ./apps/api
+          file: ${{ env.DOCKERFILE_PATH }}
+          tags: ${{ env.IMAGE_NAME }}:test
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
+
+      - name: 컨테이너 시작 테스트
+        run: |
+          # 테스트용 환경 변수 파일 생성
+          cat > .env.test << EOF
+          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mealplanning_test
+          SECRET_KEY=test-secret-key-for-ci-only-do-not-use-in-production
+          REDIS_URL=redis://localhost:6379/0
+          ENVIRONMENT=test
+          LOG_LEVEL=INFO
+          EOF
+
+          # PostgreSQL 서비스 시작 (헬스체크용)
+          docker run -d \
+            --name postgres-test \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=mealplanning_test \
+            -p 5432:5432 \
+            --health-cmd="pg_isready -U postgres" \
+            --health-interval=5s \
+            --health-timeout=5s \
+            --health-retries=5 \
+            postgres:16-alpine
+
+          # Redis 서비스 시작
+          docker run -d \
+            --name redis-test \
+            -p 6379:6379 \
+            redis:7-alpine
+
+          # 서비스 준비 대기
+          echo "데이터베이스 준비 대기 중..."
+          timeout 30s bash -c 'until docker exec postgres-test pg_isready -U postgres; do sleep 1; done'
+
+          echo "Redis 준비 대기 중..."
+          sleep 5
+
+          # API 컨테이너 시작
+          docker run -d \
+            --name api-test \
+            --env-file .env.test \
+            --network host \
+            ${{ env.IMAGE_NAME }}:test
+
+          # 컨테이너 시작 대기 및 헬스체크
+          echo "API 서버 시작 대기 중..."
+          sleep 10
+
+          # 컨테이너 상태 확인
+          docker ps -a
+
+          # 로그 확인
+          echo "=== API 컨테이너 로그 ==="
+          docker logs api-test
+
+          # 헬스체크 (앱이 8080 포트에서 실행 중인지 확인)
+          echo "=== 헬스체크 ==="
+          max_attempts=30
+          attempt=0
+          while [ $attempt -lt $max_attempts ]; do
+            if curl -f http://localhost:8080/health 2>/dev/null; then
+              echo "✅ API 서버가 정상적으로 시작되었습니다"
+              exit 0
+            fi
+            attempt=$((attempt + 1))
+            echo "헬스체크 시도 $attempt/$max_attempts..."
+            sleep 2
+          done
+
+          echo "❌ API 서버 시작 실패"
+          docker logs api-test
+          exit 1
+
+      - name: 컨테이너 정리
+        if: always()
+        run: |
+          docker stop api-test postgres-test redis-test || true
+          docker rm api-test postgres-test redis-test || true
+
+  security-summary:
+    name: 보안 스캔 요약
+    runs-on: ubuntu-latest
+    needs: [dockerfile-lint, container-scan, build-test]
+    if: always()
+
+    steps:
+      - name: 스캔 결과 요약
+        run: |
+          echo "## 🔒 컨테이너 보안 스캔 결과" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 단계 | 결과 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Dockerfile 린트 | ${{ needs.dockerfile-lint.result == 'success' && '✅ 통과' || '❌ 실패' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 취약점 스캔 | ${{ needs.container-scan.result == 'success' && '✅ 통과' || '❌ 실패' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 빌드 및 시작 테스트 | ${{ needs.build-test.result == 'success' && '✅ 통과' || '❌ 실패' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.dockerfile-lint.result }}" == "success" && \
+                "${{ needs.container-scan.result }}" == "success" && \
+                "${{ needs.build-test.result }}" == "success" ]]; then
+            echo "### ✅ 모든 보안 검사 통과" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "컨테이너가 보안 기준을 충족하며 정상적으로 시작됩니다." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ 일부 보안 검사 실패" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Security 탭에서 상세 결과를 확인하세요." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 실패 시 워크플로우 실패 처리
+        if: needs.dockerfile-lint.result != 'success' || needs.container-scan.result != 'success' || needs.build-test.result != 'success'
+        run: |
+          echo "::error::하나 이상의 보안 검사가 실패했습니다"
+          exit 1

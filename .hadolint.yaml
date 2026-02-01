@@ -1,0 +1,31 @@
+# Hadolint configuration
+# https://github.com/hadolint/hadolint
+
+# Ignore rules
+ignored:
+  # DL3008: Pin versions in apt get install
+  # - DL3008
+  # DL3013: Pin versions in pip
+  # - DL3013
+
+# Treat warnings as errors
+failure-threshold: warning
+
+# Override severity
+override:
+  warning:
+    # Treat these as warnings instead of errors
+    - DL3008  # apt-get version pinning
+    - DL3013  # pip version pinning
+
+# Trusted registries for FROM instructions
+trustedRegistries:
+  - docker.io
+  - gcr.io
+  - ghcr.io
+
+# Label schema
+label-schema:
+  maintainer: text
+  org.opencontainers.image.source: url
+  org.opencontainers.image.version: semver

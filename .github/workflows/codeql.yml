@@ -1,0 +1,53 @@
+name: "CodeQL 보안 분석"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    # 매주 월요일 오전 9시 (KST) 실행
+    - cron: '0 0 * * 1'
+
+jobs:
+  analyze:
+    name: 코드 분석 (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            build-mode: none
+            path: apps/web
+          - language: python
+            build-mode: none
+            path: apps/api
+
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
+
+    - name: CodeQL 초기화
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+        queries: +security-extended,security-and-quality
+        config: |
+          paths:
+            - ${{ matrix.path }}
+
+    - name: CodeQL 분석 수행
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{ matrix.language }}"
+        output: sarif-results
+        upload: true

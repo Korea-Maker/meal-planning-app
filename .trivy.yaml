@@ -1,0 +1,51 @@
+# Trivy configuration
+# https://aquasecurity.github.io/trivy/
+
+# Scan settings
+scan:
+  # Security checks to run
+  security-checks:
+    - vuln
+    - secret
+    - misconfig
+
+# Vulnerability settings
+vulnerability:
+  # Vulnerability types to scan
+  type:
+    - os
+    - library
+
+  # Ignore unfixed vulnerabilities
+  ignore-unfixed: false
+
+# Severity to fail on
+severity:
+  - CRITICAL
+  - HIGH
+
+# Skip directories
+skip-dirs:
+  - node_modules
+  - .pnpm-store
+  - __pycache__
+  - .venv
+  - venv
+  - .next
+  - .git
+  - .turbo
+
+# Skip files
+skip-files:
+  - "pnpm-lock.yaml"
+  - "package-lock.json"
+
+# Output format
+format: table
+
+# Exit code on findings
+exit-code: 1
+
+# Cache settings
+cache:
+  dir: .trivy-cache

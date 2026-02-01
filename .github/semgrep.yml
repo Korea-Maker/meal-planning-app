@@ -1,0 +1,71 @@
+# Semgrep configuration
+# https://semgrep.dev/docs/writing-rules/rule-syntax/
+
+rules:
+  # Custom rule: Prevent console.log in production code
+  - id: no-console-log-in-production
+    patterns:
+      - pattern: console.log(...)
+    paths:
+      include:
+        - apps/web/app/**
+        - apps/web/components/**
+      exclude:
+        - "**/*.test.*"
+        - "**/*.spec.*"
+    message: "console.log() 사용 금지 - logger를 사용하세요"
+    languages: [typescript, javascript]
+    severity: WARNING
+
+  # Custom rule: Prevent hardcoded API URLs
+  - id: no-hardcoded-api-url
+    patterns:
+      - pattern-regex: (http|https):\/\/localhost:\d+
+      - pattern-regex: (http|https):\/\/127\.0\.0\.1:\d+
+    paths:
+      include:
+        - apps/web/**
+      exclude:
+        - "**/*.test.*"
+        - "**/*.example.*"
+        - "**/env.*"
+    message: "하드코딩된 API URL 금지 - 환경 변수를 사용하세요"
+    languages: [typescript, javascript]
+    severity: ERROR
+
+  # Custom rule: Ensure password fields use secure input
+  - id: password-input-type
+    patterns:
+      - pattern: <input ... type="text" ... name="password" ...>
+      - pattern: <input ... type="text" ... name="Password" ...>
+    message: "비밀번호 필드는 type='password'를 사용해야 합니다"
+    languages: [typescript, javascript]
+    severity: ERROR
+
+  # Python: Prevent SQL injection
+  - id: python-sql-injection
+    patterns:
+      - pattern: |
+          $CURSOR.execute($QUERY % ...)
+      - pattern: |
+          $CURSOR.execute($QUERY.format(...))
+      - pattern: |
+          $CURSOR.execute(f"...")
+    paths:
+      include:
+        - apps/api/**
+    message: "SQL 인젝션 위험 - 파라미터 바인딩을 사용하세요"
+    languages: [python]
+    severity: ERROR
+
+  # Python: Prevent weak crypto
+  - id: python-weak-crypto
+    patterns:
+      - pattern: hashlib.md5(...)
+      - pattern: hashlib.sha1(...)
+    message: "취약한 해시 알고리즘 - SHA-256 이상을 사용하세요"
+    languages: [python]
+    severity: WARNING
+    paths:
+      include:
+        - apps/api/**

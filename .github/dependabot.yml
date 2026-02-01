@@ -1,0 +1,113 @@
+version: 2
+updates:
+  # Frontend dependencies (pnpm)
+  - package-ecosystem: "npm"
+    directory: "/apps/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "frontend"
+      - "자동 업데이트"
+    commit-message:
+      prefix: "chore(deps):"
+      include: "scope"
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Root workspace dependencies (pnpm)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "monorepo"
+      - "자동 업데이트"
+    commit-message:
+      prefix: "chore(deps):"
+      include: "scope"
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Backend dependencies (Python/pip)
+  - package-ecosystem: "pip"
+    directory: "/apps/api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "backend"
+      - "python"
+      - "자동 업데이트"
+    commit-message:
+      prefix: "chore(deps):"
+      include: "scope"
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci/cd"
+      - "자동 업데이트"
+    commit-message:
+      prefix: "chore(ci):"
+      include: "scope"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # Docker
+  - package-ecosystem: "docker"
+    directory: "/apps/api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+      - "자동 업데이트"
+    commit-message:
+      prefix: "chore(docker):"
+      include: "scope"

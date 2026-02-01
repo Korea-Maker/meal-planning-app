@@ -1,0 +1,43 @@
+# Semgrep ignore file
+# https://semgrep.dev/docs/ignoring-files-folders-code/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+.turbo/
+
+# Test files (optional - comment out to scan tests)
+# **/tests/
+# **/*.test.ts
+# **/*.spec.ts
+
+# Generated files
+*.min.js
+*.bundle.js
+*.generated.ts
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+poetry.lock

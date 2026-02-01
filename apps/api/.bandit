@@ -1,0 +1,29 @@
+# Bandit configuration
+# https://bandit.readthedocs.io/en/latest/config.html
+
+[bandit]
+# Exclude directories
+exclude_dirs = [
+    tests,
+    .venv,
+    venv,
+    __pycache__,
+    .git,
+    alembic/versions
+]
+
+# Test selection
+# Skip these tests
+skips = [
+    # B101: assert_used - OK in tests
+    # B104: hardcoded_bind_all_interfaces - handled by container/LB
+]
+
+# Run these tests
+# tests = B101,B102,B103...
+
+# Confidence level (LOW, MEDIUM, HIGH)
+confidence = MEDIUM
+
+# Severity level (LOW, MEDIUM, HIGH)
+severity = LOW

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "meal-planning-api"
     app_env: Literal["development", "staging", "production"] = "development"
-    debug: bool = True
+    debug: bool = False  # 프로덕션 안전을 위해 기본값 False
     api_v1_prefix: str = "/api/v1"
 
     # Database

@@ -52,13 +52,14 @@ class FoodSafetyKoreaAdapter:
 
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
-                url = f"{self.base_url}/{self.api_key}/COOKRCP01/json/{start_idx}/{end_idx}"
-
-                params = {}
+                # 식품안전나라 API는 URL 경로에 검색 조건을 포함해야 함
                 if query:
-                    params["RCP_NM"] = query
+                    # URL 인코딩된 검색어를 경로에 포함
+                    url = f"{self.base_url}/{self.api_key}/COOKRCP01/json/{start_idx}/{end_idx}/RCP_NM={query}"
+                else:
+                    url = f"{self.base_url}/{self.api_key}/COOKRCP01/json/{start_idx}/{end_idx}"
 
-                response = await client.get(url, params=params)
+                response = await client.get(url)
                 response.raise_for_status()
                 data = response.json()
 
@@ -154,11 +155,13 @@ class FoodSafetyKoreaAdapter:
 
     def _transform_recipe(self, data: dict) -> dict[str, Any]:
         """Transform Food Safety Korea recipe to internal format."""
+        # 이미지: ATT_FILE_NO_MAIN (대표) 우선, 없으면 ATT_FILE_NO_MK (소)
+        image_url = data.get("ATT_FILE_NO_MAIN") or data.get("ATT_FILE_NO_MK")
         return {
             "source": "foodsafetykorea",
             "external_id": str(data.get("RCP_SEQ")),
             "title": data.get("RCP_NM", ""),
-            "image_url": data.get("ATT_FILE_NO_MAIN"),
+            "image_url": image_url if image_url else None,
             "category": data.get("RCP_PAT2"),
             "cooking_method": data.get("RCP_WAY2"),
             "calories": self._parse_float(data.get("INFO_ENG")),
@@ -185,12 +188,15 @@ class FoodSafetyKoreaAdapter:
         carbs = self._parse_float(data.get("INFO_CAR"))
         fat = self._parse_float(data.get("INFO_FAT"))
 
+        # 이미지: ATT_FILE_NO_MAIN (대표) 우선, 없으면 ATT_FILE_NO_MK (소)
+        image_url = data.get("ATT_FILE_NO_MAIN") or data.get("ATT_FILE_NO_MK")
+
         return {
             "source": "foodsafetykorea",
             "external_id": str(data.get("RCP_SEQ")),
             "title": data.get("RCP_NM", ""),
             "description": f"{category} 요리 - {data.get('RCP_WAY2', '')} (중량: {data.get('INFO_WGT', 'N/A')})",
-            "image_url": data.get("ATT_FILE_NO_MAIN"),
+            "image_url": image_url if image_url else None,
             "prep_time_minutes": None,
             "cook_time_minutes": None,
             "servings": 4,

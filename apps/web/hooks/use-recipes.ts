@@ -41,14 +41,20 @@ export function useRecipes(params?: RecipeSearchParams) {
   })
 }
 
-export function useRecipe(id: string) {
+interface UseRecipeOptions {
+  enabled?: boolean
+}
+
+export function useRecipe(id: string, options?: UseRecipeOptions) {
+  const isEnabled = options?.enabled !== undefined ? options.enabled : Boolean(id)
+
   return useQuery({
     queryKey: [RECIPES_KEY, id],
     queryFn: async () => {
       const response = await api.get<ApiResponse<RecipeWithDetails>>(`/recipes/${id}`)
       return response.data
     },
-    enabled: Boolean(id),
+    enabled: isEnabled,
   })
 }
 

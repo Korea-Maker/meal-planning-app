@@ -596,9 +596,9 @@ export function MealCalendar() {
                                 {slot.recipe.calories}kcal
                               </span>
                             )}
-                            {slot.recipe.category && (
+                            {slot.recipe.categories?.[0] && (
                               <span className="px-2 py-0.5 rounded-full bg-muted text-xs">
-                                {slot.recipe.category}
+                                {slot.recipe.categories[0]}
                               </span>
                             )}
                           </div>

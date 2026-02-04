@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     foodsafetykorea_api_key: str = ""
     mafra_api_key: str = ""
 
+    # Translation (DeepL)
+    deepl_api_key: str = ""
+
     # AWS S3
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""

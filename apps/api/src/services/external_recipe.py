@@ -18,6 +18,7 @@ from src.repositories.recipe import RecipeRepository
 from src.schemas.ingredient import IngredientCreate
 from src.schemas.instruction import InstructionCreate
 from src.schemas.recipe import RecipeCreate
+from src.services.translation import TranslationService
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class ExternalRecipeService:
         self.session = session
         self.redis = redis
         self.recipe_repo = RecipeRepository(session)
+        self.translation = TranslationService(redis)
 
     async def discover_recipes(
         self,
@@ -131,6 +133,13 @@ class ExternalRecipeService:
             except Exception as e:
                 logger.error(f"MAFRA discover error: {e}")
 
+        # Translate English sources (Spoonacular, TheMealDB) to Korean
+        if self.translation.is_configured:
+            if results["spoonacular"]:
+                results["spoonacular"] = await self.translation.translate_recipes_batch(results["spoonacular"])
+            if results["themealdb"]:
+                results["themealdb"] = await self.translation.translate_recipes_batch(results["themealdb"])
+
         results["total"] = len(results["spoonacular"]) + len(results["themealdb"]) + len(results["foodsafetykorea"]) + len(results["mafra"])
 
         await self._cache_result(cache_key, results)
@@ -220,6 +229,19 @@ class ExternalRecipeService:
 
         await self._increment_rate_limit(user_id)
 
+        # Translate English results to Korean
+        if self.translation.is_configured and results:
+            # Filter English source results for translation
+            translated_results = []
+            for recipe in results:
+                source = recipe.get("source")
+                if source in ("spoonacular", "themealdb"):
+                    translated = await self.translation.translate_recipe(recipe)
+                    translated_results.append(translated)
+                else:
+                    translated_results.append(recipe)
+            results = translated_results
+
         return {
             "results": results,
             "total": total,
@@ -260,6 +282,9 @@ class ExternalRecipeService:
             result = await mafra_adapter.get_recipe_details(external_id)
 
         if result:
+            # Translate English sources to Korean
+            if self.translation.is_configured and source in ("spoonacular", "themealdb"):
+                result = await self.translation.translate_recipe(result)
             await self._cache_result(cache_key, result)
 
         return result

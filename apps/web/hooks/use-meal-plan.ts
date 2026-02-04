@@ -99,6 +99,19 @@ export function useDeleteMealSlot() {
   })
 }
 
+export function useDeleteMealPlan() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (mealPlanId: string) => {
+      await api.delete<void>(`/meal-plans/${mealPlanId}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [MEAL_PLANS_KEY] })
+    },
+  })
+}
+
 export function useGenerateShoppingList() {
   const queryClient = useQueryClient()
 

@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { format, addDays, startOfWeek, isSameDay, isToday as isDateToday } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, ShoppingCart, Loader2, Sparkles, UtensilsCrossed, Clock, Users, Flame } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ShoppingCart, Loader2, Sparkles, UtensilsCrossed, Clock, Users, Flame, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MealSlot, EmptySlot } from './meal-slot'
 import { RecipePickerDialog } from './recipe-picker-dialog'
@@ -15,6 +15,7 @@ import {
   useAddMealSlot,
   useUpdateMealSlot,
   useDeleteMealSlot,
+  useDeleteMealPlan,
   useGenerateShoppingList,
 } from '@/hooks/use-meal-plan'
 import { toast } from '@/hooks/use-toast'
@@ -131,6 +132,7 @@ export function MealCalendar() {
   const addMealSlot = useAddMealSlot()
   const updateSlot = useUpdateMealSlot()
   const deleteMealSlot = useDeleteMealSlot()
+  const deleteMealPlan = useDeleteMealPlan()
   const generateShoppingList = useGenerateShoppingList()
 
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -330,6 +332,36 @@ export function MealCalendar() {
       toast({
         title: '오류',
         description: '장보기 목록을 생성할 수 없습니다',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleDeleteAllMeals = async () => {
+    if (!mealPlan?.id) {
+      toast({
+        title: '삭제할 계획 없음',
+        description: '삭제할 식사 계획이 없습니다',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (deleteMealPlan.isPending) return
+
+    const confirmed = window.confirm('이번 주 식사 계획을 모두 삭제하시겠습니까?')
+    if (!confirmed) return
+
+    try {
+      await deleteMealPlan.mutateAsync(mealPlan.id)
+      toast({
+        title: '삭제 완료',
+        description: '이번 주 식사 계획이 모두 삭제되었습니다',
+      })
+    } catch {
+      toast({
+        title: '오류',
+        description: '식사 계획을 삭제할 수 없습니다',
         variant: 'destructive',
       })
     }
@@ -685,6 +717,20 @@ export function MealCalendar() {
             )}
             <span className="hidden sm:inline">장보기 목록</span>
             <span className="sm:hidden">장보기</span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleDeleteAllMeals}
+            disabled={!mealPlan || deleteMealPlan.isPending}
+            className="flex-1 sm:flex-none h-10 text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            {deleteMealPlan.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4 mr-2" />
+            )}
+            <span className="hidden sm:inline">전체 삭제</span>
+            <span className="sm:hidden">삭제</span>
           </Button>
         </div>
       </div>

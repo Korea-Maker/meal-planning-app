@@ -215,17 +215,9 @@ class TranslationService:
             texts_to_translate.append(recipe["description"])
             field_mapping.append(("description", None))
 
-        # Categories
-        for i, cat in enumerate(recipe.get("categories", [])):
-            if cat:
-                texts_to_translate.append(cat)
-                field_mapping.append(("categories", i))
-
-        # Tags
-        for i, tag in enumerate(recipe.get("tags", [])):
-            if tag:
-                texts_to_translate.append(tag)
-                field_mapping.append(("tags", i))
+        # NOTE: Categories and tags are NOT translated because they are
+        # enum values used by the system (e.g., 'breakfast', 'lunch', 'dessert').
+        # Translating them would break database constraints.
 
         # Ingredients
         for i, ing in enumerate(recipe.get("ingredients", [])):
@@ -257,14 +249,6 @@ class TranslationService:
 
             if index is None:
                 result[field] = trans
-            elif field == "categories":
-                if "categories" not in result:
-                    result["categories"] = list(recipe.get("categories", []))
-                result["categories"][index] = trans
-            elif field == "tags":
-                if "tags" not in result:
-                    result["tags"] = list(recipe.get("tags", []))
-                result["tags"][index] = trans
             elif field == "ingredients":
                 if "ingredients" not in result:
                     result["ingredients"] = [dict(ing) for ing in recipe.get("ingredients", [])]

@@ -1,74 +1,149 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core'
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import { format, addDays, startOfWeek, isSameDay } from 'date-fns'
+import { useState, useMemo, useCallback } from 'react'
+import { format, addDays, startOfWeek, isSameDay, isToday as isDateToday } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, ShoppingCart, Loader2, Sparkles } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ShoppingCart, Loader2, Sparkles, UtensilsCrossed, Clock, Users, Flame } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { MealSlot, EmptySlot } from './meal-slot'
 import { RecipePickerDialog } from './recipe-picker-dialog'
 import { AutoFillDialog } from './auto-fill-dialog'
+import { RecipeDetailModal } from './recipe-detail-modal'
 import {
   useWeekMealPlan,
   useCreateMealPlan,
   useAddMealSlot,
+  useUpdateMealSlot,
   useDeleteMealSlot,
   useGenerateShoppingList,
 } from '@/hooks/use-meal-plan'
 import { toast } from '@/hooks/use-toast'
 import type { Recipe, MealType, MealSlotWithRecipe } from '@meal-planning/shared-types'
 
-const MEAL_TYPES: { value: MealType; label: string }[] = [
-  { value: 'breakfast', label: '아침' },
-  { value: 'lunch', label: '점심' },
-  { value: 'dinner', label: '저녁' },
-  { value: 'snack', label: '간식' },
+const MEAL_TYPES: { value: MealType; label: string; icon: string }[] = [
+  { value: 'breakfast', label: '아침', icon: '🌅' },
+  { value: 'lunch', label: '점심', icon: '☀️' },
+  { value: 'dinner', label: '저녁', icon: '🌙' },
+  { value: 'snack', label: '간식', icon: '🍪' },
 ]
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
+
+const MEAL_COLORS: Record<MealType, { bg: string; border: string; text: string }> = {
+  breakfast: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700' },
+  lunch: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700' },
+  dinner: { bg: 'bg-violet-50', border: 'border-violet-200', text: 'text-violet-700' },
+  snack: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700' },
+}
+
+// Droppable meal section component
+interface DroppableMealSectionProps {
+  droppableId: string
+  mealType: { value: MealType; label: string; icon: string }
+  slots: MealSlotWithRecipe[]
+  onAdd: () => void
+  onDelete: (slotId: string) => void
+  onDrop: (slotId: string, targetId: string) => void
+  onRecipeClick?: (recipeId: string) => void
+  compact?: boolean
+}
+
+function DroppableMealSection({
+  droppableId,
+  mealType,
+  slots,
+  onAdd,
+  onDelete,
+  onDrop,
+  onRecipeClick,
+  compact = false,
+}: DroppableMealSectionProps) {
+  const [isDragOver, setIsDragOver] = useState(false)
+  const colors = MEAL_COLORS[mealType.value]
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setIsDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    const slotId = e.dataTransfer.getData('text/plain')
+    if (slotId) {
+      onDrop(slotId, droppableId)
+    }
+  }, [droppableId, onDrop])
+
+  return (
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`
+        rounded-xl p-3 transition-all duration-200 border min-h-[60px]
+        ${colors.bg} ${colors.border}
+        ${isDragOver ? 'ring-2 ring-primary ring-offset-2 scale-[1.02] shadow-lg bg-primary/10' : 'shadow-sm'}
+        ${compact ? 'p-2' : 'p-3'}
+      `}
+    >
+      <div className={`flex items-center gap-2 mb-2 ${compact ? 'mb-1' : 'mb-2'}`}>
+        <span className={compact ? 'text-sm' : 'text-base'}>{mealType.icon}</span>
+        <span className={`font-semibold ${colors.text} ${compact ? 'text-xs' : 'text-sm'}`}>
+          {mealType.label}
+        </span>
+      </div>
+
+      <div className={`space-y-2 ${compact ? 'space-y-1' : 'space-y-2'}`}>
+        {slots.map((slot) => (
+          <MealSlot key={slot.id} slot={slot} onDelete={onDelete} onClick={onRecipeClick} compact={compact} />
+        ))}
+      </div>
+
+      {slots.length === 0 && (
+        <EmptySlot onClick={onAdd} compact={compact} />
+      )}
+    </div>
+  )
+}
 
 export function MealCalendar() {
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   )
+  const [selectedDayIndex, setSelectedDayIndex] = useState(() => {
+    const today = new Date()
+    const start = startOfWeek(today, { weekStartsOn: 1 })
+    const diff = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+    return Math.min(Math.max(diff, 0), 6)
+  })
 
   const weekStartStr = format(weekStart, 'yyyy-MM-dd')
 
   const { data: mealPlan, isLoading } = useWeekMealPlan(weekStartStr)
   const createMealPlan = useCreateMealPlan()
   const addMealSlot = useAddMealSlot()
+  const updateSlot = useUpdateMealSlot()
   const deleteMealSlot = useDeleteMealSlot()
   const generateShoppingList = useGenerateShoppingList()
-
-  const pendingMealPlanIdRef = useRef<string | null>(null)
-  const isGeneratingRef = useRef(false)
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [autoFillOpen, setAutoFillOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedMealType, setSelectedMealType] = useState<MealType>('dinner')
+  const [recipeDetailOpen, setRecipeDetailOpen] = useState(false)
+  const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null)
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
+  const handleRecipeClick = useCallback((recipeId: string) => {
+    setSelectedRecipeId(recipeId)
+    setRecipeDetailOpen(true)
+  }, [])
 
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -88,6 +163,11 @@ export function MealCalendar() {
     return map
   }, [mealPlan?.slots])
 
+  // Find slot by ID
+  const findSlotById = useCallback((slotId: string): MealSlotWithRecipe | undefined => {
+    return mealPlan?.slots?.find((s) => s.id === slotId)
+  }, [mealPlan?.slots])
+
   const goToPreviousWeek = () => {
     setWeekStart((prev) => addDays(prev, -7))
   }
@@ -97,7 +177,11 @@ export function MealCalendar() {
   }
 
   const goToToday = () => {
-    setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))
+    const today = new Date()
+    setWeekStart(startOfWeek(today, { weekStartsOn: 1 }))
+    const start = startOfWeek(today, { weekStartsOn: 1 })
+    const diff = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+    setSelectedDayIndex(Math.min(Math.max(diff, 0), 6))
   }
 
   const handleSlotClick = async (date: Date, mealType: MealType) => {
@@ -107,9 +191,8 @@ export function MealCalendar() {
 
     if (!mealPlan) {
       try {
-        const newMealPlan = await createMealPlan.mutateAsync({ week_start_date: weekStartStr })
-        pendingMealPlanIdRef.current = newMealPlan?.id || null
-      } catch (error) {
+        await createMealPlan.mutateAsync({ week_start_date: weekStartStr })
+      } catch {
         toast({
           title: '오류',
           description: '식사 계획을 생성할 수 없습니다',
@@ -123,7 +206,7 @@ export function MealCalendar() {
   }
 
   const handleRecipeSelect = async (recipe: Recipe) => {
-    const mealPlanId = mealPlan?.id || pendingMealPlanIdRef.current
+    const mealPlanId = mealPlan?.id
     if (!mealPlanId) {
       toast({
         title: '오류',
@@ -143,13 +226,12 @@ export function MealCalendar() {
           servings: recipe.servings,
         },
       })
-      pendingMealPlanIdRef.current = null
       toast({
         title: '레시피 추가됨',
         description: `${recipe.title}이(가) 추가되었습니다`,
         variant: 'success',
       })
-    } catch (error) {
+    } catch {
       toast({
         title: '오류',
         description: '레시피를 추가할 수 없습니다',
@@ -167,7 +249,7 @@ export function MealCalendar() {
         title: '삭제됨',
         description: '레시피가 식사 계획에서 제거되었습니다',
       })
-    } catch (error) {
+    } catch {
       toast({
         title: '오류',
         description: '레시피를 삭제할 수 없습니다',
@@ -176,13 +258,54 @@ export function MealCalendar() {
     }
   }
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    // 드래그앤드롭 로직은 복잡하므로 기본 구현만 제공
-    const { active, over } = event
-    if (active.id !== over?.id) {
-      // 슬롯 순서 변경 로직
-    }
-  }
+  const handleDrop = useCallback((slotId: string, targetId: string) => {
+    if (!mealPlan?.id) return
+
+    // Parse target droppableId (format: "YYYY-MM-DD-mealType")
+    const lastDashIndex = targetId.lastIndexOf('-')
+    if (lastDashIndex === -1) return
+
+    const newDate = targetId.substring(0, lastDashIndex)
+    const newMealType = targetId.substring(lastDashIndex + 1) as MealType
+
+    // Validate
+    if (!MEAL_TYPES.some((mt) => mt.value === newMealType)) return
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return
+
+    // Find current slot
+    const currentSlot = findSlotById(slotId)
+    if (!currentSlot) return
+
+    // Skip if same position
+    if (currentSlot.date === newDate && currentSlot.meal_type === newMealType) return
+
+    // Update slot position
+    updateSlot.mutate(
+      {
+        mealPlanId: mealPlan.id,
+        slotId: slotId,
+        data: { date: newDate, meal_type: newMealType },
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: '이동됨',
+            description: '식사가 이동되었습니다',
+          })
+        },
+        onError: (error: Error & { response?: { status?: number } }) => {
+          const isConflict = error.response?.status === 409 || error.message?.includes('409')
+          toast({
+            title: isConflict ? '이동 불가' : '오류',
+            description: isConflict
+              ? '해당 시간대에 이미 식사가 있습니다. 먼저 기존 식사를 삭제해주세요.'
+              : '식사를 이동할 수 없습니다',
+            variant: 'destructive',
+          })
+        },
+      }
+    )
+  }, [mealPlan?.id, findSlotById, updateSlot])
 
   const handleGenerateShoppingList = async () => {
     if (!mealPlan?.id) {
@@ -194,11 +317,7 @@ export function MealCalendar() {
       return
     }
 
-    if (isGeneratingRef.current || generateShoppingList.isPending) {
-      return
-    }
-
-    isGeneratingRef.current = true
+    if (generateShoppingList.isPending) return
 
     try {
       await generateShoppingList.mutateAsync(mealPlan.id)
@@ -207,120 +326,381 @@ export function MealCalendar() {
         description: '장보기 목록이 생성되었습니다',
         variant: 'success',
       })
-    } catch (error) {
+    } catch {
       toast({
         title: '오류',
         description: '장보기 목록을 생성할 수 없습니다',
         variant: 'destructive',
       })
-    } finally {
-      isGeneratingRef.current = false
     }
   }
 
   const today = new Date()
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" onClick={goToToday}>
-            오늘
-          </Button>
-          <Button variant="outline" size="icon" onClick={goToNextWeek}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <span className="ml-2 font-medium">
-            {format(weekStart, 'yyyy년 M월 d일', { locale: ko })} -{' '}
-            {format(addDays(weekStart, 6), 'M월 d일', { locale: ko })}
-          </span>
+  // Tablet view (md to xl): 3-day horizontal scroll with snap
+  const renderTabletView = () => (
+    <div className="hidden md:block xl:hidden">
+      <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide">
+        {weekDays.map((day) => {
+          const isToday = isSameDay(day, today)
+          const dateStr = format(day, 'yyyy-MM-dd')
+
+          return (
+            <div
+              key={dateStr}
+              className="flex-shrink-0 w-[calc(33.333%-12px)] min-w-[280px] snap-start"
+            >
+              <div
+                className={`text-center py-4 rounded-t-2xl transition-all ${
+                  isToday
+                    ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg'
+                    : 'bg-muted/50'
+                }`}
+              >
+                <p className={`text-sm font-medium ${isToday ? '' : 'text-muted-foreground'}`}>
+                  {WEEKDAYS[day.getDay()]}요일
+                </p>
+                <p className={`text-2xl font-bold ${isToday ? '' : 'text-foreground'}`}>
+                  {format(day, 'M월 d일', { locale: ko })}
+                </p>
+              </div>
+
+              <div className="border border-t-0 rounded-b-2xl p-4 space-y-4 min-h-[450px] bg-card">
+                {MEAL_TYPES.map((mealType) => {
+                  const droppableId = `${dateStr}-${mealType.value}`
+                  const slots = slotsByDateAndType.get(droppableId) || []
+
+                  return (
+                    <DroppableMealSection
+                      key={mealType.value}
+                      droppableId={droppableId}
+                      mealType={mealType}
+                      slots={slots}
+                      onAdd={() => handleSlotClick(day, mealType.value)}
+                      onDelete={handleDeleteSlot}
+                      onDrop={handleDrop}
+                      onRecipeClick={handleRecipeClick}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+
+  // Mobile view (below md): Date tabs + single day card
+  const renderMobileView = () => {
+    const selectedDay = weekDays[selectedDayIndex]
+    const dateStr = format(selectedDay, 'yyyy-MM-dd')
+
+    return (
+      <div className="md:hidden space-y-4">
+        {/* Date selector tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {weekDays.map((day, idx) => {
+            const isToday = isDateToday(day)
+            const isSelected = selectedDayIndex === idx
+
+            return (
+              <button
+                key={day.toISOString()}
+                onClick={() => setSelectedDayIndex(idx)}
+                className={`
+                  flex-shrink-0 flex flex-col items-center px-4 py-3 rounded-xl transition-all
+                  ${
+                    isSelected
+                      ? 'bg-primary text-primary-foreground shadow-lg scale-105'
+                      : isToday
+                      ? 'bg-primary/10 border-2 border-primary'
+                      : 'bg-card border border-border hover:bg-muted'
+                  }
+                `}
+              >
+                <span className={`text-xs font-medium ${isSelected ? '' : 'text-muted-foreground'}`}>
+                  {WEEKDAYS[day.getDay()]}
+                </span>
+                <span className="text-lg font-bold">{format(day, 'd')}</span>
+              </button>
+            )
+          })}
         </div>
 
-        <div className="flex gap-2">
+        {/* Single day card */}
+        <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
+          <div
+            className={`text-center py-4 ${
+              isDateToday(selectedDay)
+                ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground'
+                : 'bg-muted/50'
+            }`}
+          >
+            <p className="text-2xl font-bold">
+              {format(selectedDay, 'M월 d일 EEEE', { locale: ko })}
+            </p>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {MEAL_TYPES.map((mealType) => {
+              const droppableId = `${dateStr}-${mealType.value}`
+              const slots = slotsByDateAndType.get(droppableId) || []
+
+              return (
+                <DroppableMealSection
+                  key={mealType.value}
+                  droppableId={droppableId}
+                  mealType={mealType}
+                  slots={slots}
+                  onAdd={() => handleSlotClick(selectedDay, mealType.value)}
+                  onDelete={handleDeleteSlot}
+                  onDrop={handleDrop}
+                  onRecipeClick={handleRecipeClick}
+                />
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // List view for desktop - shows all meals in a table format
+  const renderListView = () => {
+    // Group slots by date
+    const slotsByDate = new Map<string, MealSlotWithRecipe[]>()
+    weekDays.forEach((day) => {
+      const dateStr = format(day, 'yyyy-MM-dd')
+      const daySlots: MealSlotWithRecipe[] = []
+      MEAL_TYPES.forEach((mealType) => {
+        const key = `${dateStr}-${mealType.value}`
+        const slots = slotsByDateAndType.get(key) || []
+        daySlots.push(...slots)
+      })
+      slotsByDate.set(dateStr, daySlots)
+    })
+
+    return (
+      <div className="hidden xl:block space-y-4">
+        {weekDays.map((day) => {
+          const isToday = isSameDay(day, today)
+          const dateStr = format(day, 'yyyy-MM-dd')
+          const daySlots = slotsByDate.get(dateStr) || []
+
+          return (
+            <div
+              key={dateStr}
+              className={`rounded-2xl border overflow-hidden ${
+                isToday ? 'ring-2 ring-primary ring-offset-2' : ''
+              }`}
+            >
+              {/* Date header */}
+              <div
+                className={`px-6 py-4 ${
+                  isToday
+                    ? 'bg-gradient-to-r from-primary to-primary/80 text-primary-foreground'
+                    : 'bg-muted/50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className={`text-2xl font-bold ${isToday ? '' : 'text-foreground'}`}>
+                      {format(day, 'd')}
+                    </span>
+                    <div>
+                      <p className={`font-semibold ${isToday ? '' : 'text-foreground'}`}>
+                        {format(day, 'EEEE', { locale: ko })}
+                      </p>
+                      <p className={`text-sm ${isToday ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                        {format(day, 'M월', { locale: ko })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {MEAL_TYPES.map((mealType) => {
+                      const key = `${dateStr}-${mealType.value}`
+                      const slots = slotsByDateAndType.get(key) || []
+                      if (slots.length === 0) {
+                        return (
+                          <Button
+                            key={mealType.value}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSlotClick(day, mealType.value)}
+                            className={`${isToday ? 'bg-white/20 border-white/30 hover:bg-white/30 text-primary-foreground' : ''}`}
+                          >
+                            {mealType.icon} {mealType.label} 추가
+                          </Button>
+                        )
+                      }
+                      return null
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Meals list */}
+              {daySlots.length > 0 ? (
+                <div className="divide-y">
+                  {MEAL_TYPES.map((mealType) => {
+                    const key = `${dateStr}-${mealType.value}`
+                    const slots = slotsByDateAndType.get(key) || []
+                    const colors = MEAL_COLORS[mealType.value]
+
+                    if (slots.length === 0) return null
+
+                    return slots.map((slot) => (
+                      <div
+                        key={slot.id}
+                        onClick={() => handleRecipeClick(slot.recipe.id)}
+                        className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors group cursor-pointer"
+                      >
+                        {/* Meal type badge */}
+                        <div className={`flex-shrink-0 px-3 py-1.5 rounded-full ${colors.bg} ${colors.text} text-sm font-medium`}>
+                          {mealType.icon} {mealType.label}
+                        </div>
+
+                        {/* Recipe image */}
+                        {slot.recipe.image_url ? (
+                          <div className="flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-muted">
+                            <img
+                              src={slot.recipe.image_url}
+                              alt={slot.recipe.title}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex-shrink-0 w-20 h-20 rounded-xl bg-muted flex items-center justify-center">
+                            <UtensilsCrossed className="h-8 w-8 text-muted-foreground/50" />
+                          </div>
+                        )}
+
+                        {/* Recipe details */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-lg truncate">{slot.recipe.title}</h4>
+                          <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Users className="h-4 w-4" />
+                              {slot.servings}인분
+                            </span>
+                            {slot.recipe.cook_time_minutes && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                {slot.recipe.cook_time_minutes}분
+                              </span>
+                            )}
+                            {slot.recipe.calories && (
+                              <span className="flex items-center gap-1">
+                                <Flame className="h-4 w-4" />
+                                {slot.recipe.calories}kcal
+                              </span>
+                            )}
+                            {slot.recipe.category && (
+                              <span className="px-2 py-0.5 rounded-full bg-muted text-xs">
+                                {slot.recipe.category}
+                              </span>
+                            )}
+                          </div>
+                          {slot.notes && (
+                            <p className="mt-1 text-sm text-muted-foreground italic truncate">
+                              📝 {slot.notes}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteSlot(slot.id)
+                            }}
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          >
+                            삭제
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  })}
+                </div>
+              ) : (
+                <div className="px-6 py-8 text-center text-muted-foreground">
+                  <UtensilsCrossed className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>등록된 식사가 없습니다</p>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header with navigation */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={goToPreviousWeek} className="h-10 w-10">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <Button variant="outline" onClick={goToToday} className="h-10 px-4">
+            오늘
+          </Button>
+          <Button variant="outline" size="icon" onClick={goToNextWeek} className="h-10 w-10">
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+          <div className="ml-3 flex items-center gap-2">
+            <UtensilsCrossed className="h-5 w-5 text-primary" />
+            <span className="text-lg font-semibold">
+              {format(weekStart, 'yyyy년 M월 d일', { locale: ko })} -{' '}
+              {format(addDays(weekStart, 6), 'M월 d일', { locale: ko })}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             onClick={() => setAutoFillOpen(true)}
+            className="flex-1 sm:flex-none h-10"
           >
             <Sparkles className="h-4 w-4 mr-2" />
-            추천으로 채우기
+            <span className="hidden sm:inline">추천으로 채우기</span>
+            <span className="sm:hidden">추천</span>
           </Button>
           <Button
             onClick={handleGenerateShoppingList}
             disabled={!mealPlan || generateShoppingList.isPending}
+            className="flex-1 sm:flex-none h-10"
           >
             {generateShoppingList.isPending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <ShoppingCart className="h-4 w-4 mr-2" />
             )}
-            장보기 목록 생성
+            <span className="hidden sm:inline">장보기 목록</span>
+            <span className="sm:hidden">장보기</span>
           </Button>
         </div>
       </div>
 
+      {/* Calendar content */}
       {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground">식사 계획을 불러오는 중...</p>
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="grid grid-cols-7 gap-2">
-            {weekDays.map((day) => {
-              const isToday = isSameDay(day, today)
-              const dateStr = format(day, 'yyyy-MM-dd')
-
-              return (
-                <div key={dateStr} className="min-w-0">
-                  <div
-                    className={`text-center py-2 rounded-t-lg ${
-                      isToday ? 'bg-primary text-primary-foreground' : 'bg-gray-100'
-                    }`}
-                  >
-                    <p className="text-xs">{WEEKDAYS[day.getDay()]}</p>
-                    <p className="font-medium">{format(day, 'd')}</p>
-                  </div>
-
-                  <div className="border border-t-0 rounded-b-lg p-2 space-y-3 min-h-[400px] bg-white">
-                    {MEAL_TYPES.map((mealType) => {
-                      const key = `${dateStr}-${mealType.value}`
-                      const slots = slotsByDateAndType.get(key) || []
-
-                      return (
-                        <div key={mealType.value} className="space-y-1">
-                          <p className="text-xs font-medium text-gray-500 px-1">
-                            {mealType.label}
-                          </p>
-                          <SortableContext
-                            items={slots.map((s) => s.id)}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            {slots.map((slot) => (
-                              <MealSlot
-                                key={slot.id}
-                                slot={slot}
-                                onDelete={handleDeleteSlot}
-                              />
-                            ))}
-                          </SortableContext>
-                          <EmptySlot
-                            onClick={() => handleSlotClick(day, mealType.value)}
-                          />
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </DndContext>
+        <>
+          {renderListView()}
+          {renderTabletView()}
+          {renderMobileView()}
+        </>
       )}
 
       <RecipePickerDialog
@@ -337,6 +717,12 @@ export function MealCalendar() {
         weekStart={weekStartStr}
         existingSlots={mealPlan?.slots || []}
         mealPlanId={mealPlan?.id}
+      />
+
+      <RecipeDetailModal
+        recipeId={selectedRecipeId}
+        open={recipeDetailOpen}
+        onOpenChange={setRecipeDetailOpen}
       />
     </div>
   )

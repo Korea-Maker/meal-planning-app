@@ -93,6 +93,11 @@ class ValidationError(AppException):
         )
 
 
+class BadRequestError(AppException):
+    def __init__(self, message: str = "Bad request"):
+        super().__init__(message=message, code="GENERAL_003", status_code=400)
+
+
 class MealSlotConflictError(AppException):
     def __init__(self, date: str, meal_type: str):
         super().__init__(

@@ -45,6 +45,16 @@ class User(BaseModel):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    recipe_ratings: Mapped[list["RecipeRating"]] = relationship(  # noqa: F821
+        "RecipeRating",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    recipe_favorites: Mapped[list["RecipeFavorite"]] = relationship(  # noqa: F821
+        "RecipeFavorite",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
     __table_args__ = (
         Index("ix_users_provider_provider_id", "provider", "provider_id"),

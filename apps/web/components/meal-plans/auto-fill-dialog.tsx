@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Loader2, Sparkles } from 'lucide-react'
-import { addDays, format } from 'date-fns'
+import { addDays, format, isBefore, startOfDay } from 'date-fns'
 import {
   Dialog,
   DialogContent,
@@ -94,16 +94,24 @@ export function AutoFillDialog({
     setIsLoading(true)
 
     try {
-      // 빈 슬롯 찾기
+      // 빈 슬롯 찾기 (오늘 이전 날짜는 건너뜀)
       const existingKeys = new Set(
         existingSlots.map((s) => `${s.date}-${s.meal_type}`)
       )
 
       const slotsToFill: { date: string; meal_type: MealType }[] = []
       const weekStartDate = new Date(weekStart)
+      const today = startOfDay(new Date())
 
       for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-        const date = format(addDays(weekStartDate, dayOffset), 'yyyy-MM-dd')
+        const dayDate = addDays(weekStartDate, dayOffset)
+
+        // 오늘 이전 날짜는 건너뜀
+        if (isBefore(startOfDay(dayDate), today)) {
+          continue
+        }
+
+        const date = format(dayDate, 'yyyy-MM-dd')
         for (const mealType of selectedMealTypes) {
           const key = `${date}-${mealType}`
           if (!existingKeys.has(key)) {
@@ -119,7 +127,7 @@ export function AutoFillDialog({
       }
 
       // Quick plan API 호출
-      const quickPlanSlots = slotsToFill.slice(0, recipes.length).map((slot, idx) => ({
+      const quickPlanSlots = slotsToFill.map((slot, idx) => ({
         source: recipes[idx % recipes.length].source,
         external_id: recipes[idx % recipes.length].external_id,
         date: slot.date,

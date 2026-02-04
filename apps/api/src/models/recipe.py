@@ -77,6 +77,16 @@ class Recipe(BaseModel):
         "MealSlot",
         back_populates="recipe",
     )
+    ratings: Mapped[list["RecipeRating"]] = relationship(  # noqa: F821
+        "RecipeRating",
+        back_populates="recipe",
+        cascade="all, delete-orphan",
+    )
+    favorites: Mapped[list["RecipeFavorite"]] = relationship(  # noqa: F821
+        "RecipeFavorite",
+        back_populates="recipe",
+        cascade="all, delete-orphan",
+    )
 
     __table_args__ = (
         Index("ix_recipes_categories", "categories", postgresql_using="gin"),

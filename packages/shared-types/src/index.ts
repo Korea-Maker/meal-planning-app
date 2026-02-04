@@ -368,3 +368,48 @@ export interface ExternalSearchResponse {
   limit: number
   total_pages: number
 }
+
+// Recipe Rating & Favorite Types
+export interface RecipeRating {
+  id: string
+  user_id: string
+  recipe_id: string
+  rating: number
+  review: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface RecipeRatingWithUser extends RecipeRating {
+  user_name: string | null
+  user_avatar_url: string | null
+}
+
+export interface RecipeFavorite {
+  id: string
+  user_id: string
+  recipe_id: string
+  created_at: string
+}
+
+export interface RecipeStats {
+  average_rating: number | null
+  total_ratings: number
+  favorites_count: number
+}
+
+export interface RecipeInteraction {
+  user_rating: number | null
+  is_favorite: boolean
+  stats: RecipeStats
+}
+
+export interface CreateRecipeRatingRequest {
+  rating: number
+  review?: string
+}
+
+export interface UpdateRecipeRatingRequest {
+  rating?: number
+  review?: string
+}

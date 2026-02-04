@@ -9,7 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { RecipeFiltersComponent, type RecipeFilters } from '@/components/recipes/recipe-filters'
 import { URLImportDialog } from '@/components/recipes/url-import-dialog'
 import { DiscoverSection } from '@/components/recipes/discover-section'
+import { FavoriteButton } from '@/components/recipes/favorite-button'
+import { RecipeStats } from '@/components/recipes/recipe-stats'
 import { useRecipes } from '@/hooks/use-recipes'
+import { useFavoriteRecipes } from '@/hooks/use-recipe-interactions'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Recipe, RecipeCategory, RecipeDifficulty } from '@meal-planning/shared-types'
 
@@ -34,6 +37,7 @@ export default function RecipesPage() {
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<RecipeFilters>({})
   const [showFilters, setShowFilters] = useState(false)
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
   const queryClient = useQueryClient()
 
   const { data, isLoading, refetch } = useRecipes({
@@ -43,7 +47,12 @@ export default function RecipesPage() {
     max_cook_time: filters.maxCookTime,
   })
 
-  const recipes = data?.data || []
+  const { data: favoritesData, isLoading: isFavoritesLoading } = useFavoriteRecipes()
+
+  const allRecipes = data?.data || []
+  const favoriteRecipes = favoritesData?.data || []
+  const recipes = showFavoritesOnly ? favoriteRecipes : allRecipes
+  const isLoadingRecipes = showFavoritesOnly ? isFavoritesLoading : isLoading
 
   const hasActiveFilters = Boolean(filters.category || filters.difficulty || filters.maxCookTime)
 
@@ -77,12 +86,21 @@ export default function RecipesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
+              disabled={showFavoritesOnly}
             />
           </div>
+          <Button
+            variant={showFavoritesOnly ? 'default' : 'outline'}
+            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            className="shrink-0"
+          >
+            ❤️ 즐겨찾기
+          </Button>
           <Button
             variant={showFilters || hasActiveFilters ? 'default' : 'outline'}
             onClick={() => setShowFilters(!showFilters)}
             className="shrink-0"
+            disabled={showFavoritesOnly}
           >
             <SlidersHorizontal className="h-4 w-4 mr-2" />
             필터
@@ -94,7 +112,7 @@ export default function RecipesPage() {
           </Button>
         </div>
 
-        {showFilters && (
+        {showFilters && !showFavoritesOnly && (
           <RecipeFiltersComponent filters={filters} onChange={setFilters} />
         )}
       </div>
@@ -102,7 +120,7 @@ export default function RecipesPage() {
       {/* 외부 레시피 탐색 섹션 */}
       <DiscoverSection onRecipeImported={handleExternalRecipeImported} />
 
-      {isLoading ? (
+      {isLoadingRecipes ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
@@ -138,10 +156,10 @@ export default function RecipesPage() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {recipes.map((recipe) => (
-              <Link key={recipe.id} href={`/recipes/${recipe.id}`}>
-                <Card className="cursor-pointer hover:shadow-md transition-shadow h-full">
+              <Card key={recipe.id} className="cursor-pointer hover:shadow-md transition-shadow h-full relative group">
+                <Link href={`/recipes/${recipe.id}`} className="block">
                   {recipe.image_url && (
-                    <div className="aspect-video bg-gray-100 rounded-t-lg overflow-hidden">
+                    <div className="aspect-video bg-gray-100 rounded-t-lg overflow-hidden relative">
                       <img
                         src={recipe.image_url}
                         alt={recipe.title}
@@ -164,7 +182,8 @@ export default function RecipesPage() {
                       {recipe.servings}인분
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-2">
+                    <RecipeStats recipeId={recipe.id} compact />
                     <div className="flex flex-wrap gap-1">
                       {recipe.categories.map((category) => (
                         <span
@@ -176,8 +195,11 @@ export default function RecipesPage() {
                       ))}
                     </div>
                   </CardContent>
-                </Card>
-              </Link>
+                </Link>
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <FavoriteButton recipeId={recipe.id} size="sm" />
+                </div>
+              </Card>
             ))}
           </div>
         </>

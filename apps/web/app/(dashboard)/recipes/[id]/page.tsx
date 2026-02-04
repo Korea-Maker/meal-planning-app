@@ -29,6 +29,9 @@ import {
 } from '@/components/ui/dialog'
 import { useRecipe, useDeleteRecipe, useAdjustServings } from '@/hooks/use-recipes'
 import { toast } from '@/hooks/use-toast'
+import { FavoriteButton } from '@/components/recipes/favorite-button'
+import { RecipeStats } from '@/components/recipes/recipe-stats'
+import { RatingForm } from '@/components/recipes/rating-form'
 
 const DIFFICULTY_LABELS = {
   easy: '쉬움',
@@ -148,6 +151,7 @@ export default function RecipeDetailPage({ params }: Props) {
           <h1 className="text-3xl font-bold">{recipe.title}</h1>
         </div>
         <div className="flex items-center gap-2">
+          <FavoriteButton recipeId={id} variant="icon" size="md" />
           <Button variant="outline" size="icon" onClick={handleShare}>
             <Share2 className="h-4 w-4" />
           </Button>
@@ -200,6 +204,9 @@ export default function RecipeDetailPage({ params }: Props) {
               />
             </div>
           )}
+
+          {/* Recipe Stats */}
+          <RecipeStats recipeId={id} />
 
           {recipe.description && (
             <Card>
@@ -437,6 +444,16 @@ export default function RecipeDetailPage({ params }: Props) {
               </CardContent>
             </Card>
           )}
+
+          {/* Rating Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">평점</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RatingForm recipeId={id} />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

@@ -23,8 +23,16 @@ from src.schemas.recipe import (
     URLExtractionRequest,
     URLExtractionResponse,
 )
+from src.schemas.recipe_interaction import (
+    RecipeRatingCreate,
+    RecipeRatingResponse,
+    RecipeRatingUpdate,
+    RecipeRatingWithUserResponse,
+    RecipeStatsResponse,
+)
 from src.services.external_recipe import ExternalRecipeService
 from src.services.recipe import RecipeService
+from src.services.recipe_interaction import RecipeInteractionService
 from src.services.url_extractor import URLExtractorService
 
 router = APIRouter()
@@ -114,6 +122,24 @@ async def extract_recipe_from_url(
     """
     service = URLExtractorService(redis)
     return await service.extract_recipe_from_url(str(data.url), user_id)
+
+
+@router.get("/favorites", response_model=PaginatedResponse[RecipeResponse])
+async def get_favorite_recipes(
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """사용자의 즐겨찾기 레시피 목록을 반환합니다."""
+    service = RecipeInteractionService(db)
+    recipes, meta = await service.get_favorite_recipes(user_id, page, limit)
+
+    return PaginatedResponse(
+        success=True,
+        data=[RecipeResponse.model_validate(r) for r in recipes],
+        meta=meta,
+    )
 
 
 # ==================== External Recipe Endpoints ====================
@@ -311,3 +337,149 @@ async def adjust_servings(
         success=True,
         data=RecipeWithDetailsResponse.model_validate(recipe),
     )
+
+
+# ==================== Rating & Favorite Endpoints ====================
+
+
+@router.get("/{recipe_id}/stats", response_model=ApiResponse[RecipeStatsResponse])
+async def get_recipe_stats(
+    recipe_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """레시피의 평점 통계를 반환합니다."""
+    service = RecipeInteractionService(db)
+    stats = await service.get_recipe_stats(recipe_id)
+
+    return ApiResponse(success=True, data=stats)
+
+
+@router.get("/{recipe_id}/ratings", response_model=PaginatedResponse[RecipeRatingWithUserResponse])
+async def get_recipe_ratings(
+    recipe_id: str,
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """레시피의 모든 평점/리뷰를 반환합니다."""
+    service = RecipeInteractionService(db)
+    ratings, meta = await service.get_recipe_ratings(recipe_id, page, limit)
+
+    data = [
+        RecipeRatingWithUserResponse(
+            id=r.id,
+            user_id=r.user_id,
+            recipe_id=r.recipe_id,
+            rating=r.rating,
+            review=r.review,
+            created_at=r.created_at,
+            updated_at=r.updated_at,
+            user_name=r.user.name if r.user else None,
+            user_avatar_url=r.user.avatar_url if r.user else None,
+        )
+        for r in ratings
+    ]
+
+    return PaginatedResponse(success=True, data=data, meta=meta)
+
+
+@router.get("/{recipe_id}/ratings/mine", response_model=ApiResponse[RecipeRatingResponse | None])
+async def get_my_rating(
+    recipe_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """현재 사용자의 평점을 반환합니다."""
+    service = RecipeInteractionService(db)
+    rating = await service.get_user_rating(user_id, recipe_id)
+
+    return ApiResponse(
+        success=True,
+        data=RecipeRatingResponse.model_validate(rating) if rating else None,
+    )
+
+
+@router.post("/{recipe_id}/ratings", response_model=ApiResponse[RecipeRatingResponse], status_code=status.HTTP_201_CREATED)
+async def create_rating(
+    recipe_id: str,
+    data: RecipeRatingCreate,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """레시피에 평점을 추가합니다."""
+    service = RecipeInteractionService(db)
+    rating = await service.rate_recipe(user_id, recipe_id, data)
+
+    return ApiResponse(
+        success=True,
+        data=RecipeRatingResponse.model_validate(rating),
+    )
+
+
+@router.patch("/{recipe_id}/ratings", response_model=ApiResponse[RecipeRatingResponse])
+async def update_rating(
+    recipe_id: str,
+    data: RecipeRatingUpdate,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """내 평점을 수정합니다."""
+    service = RecipeInteractionService(db)
+    rating = await service.update_rating(user_id, recipe_id, data)
+
+    return ApiResponse(
+        success=True,
+        data=RecipeRatingResponse.model_validate(rating),
+    )
+
+
+@router.delete("/{recipe_id}/ratings", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_rating(
+    recipe_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """내 평점을 삭제합니다."""
+    service = RecipeInteractionService(db)
+    await service.delete_rating(user_id, recipe_id)
+
+
+@router.get("/{recipe_id}/favorites/check", response_model=ApiResponse[bool])
+async def check_favorite(
+    recipe_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """레시피가 즐겨찾기에 있는지 확인합니다."""
+    service = RecipeInteractionService(db)
+    is_favorite = await service.is_favorite(user_id, recipe_id)
+
+    return ApiResponse(success=True, data=is_favorite)
+
+
+@router.post("/{recipe_id}/favorites", response_model=ApiResponse[bool])
+async def add_favorite(
+    recipe_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """레시피를 즐겨찾기에 추가합니다."""
+    service = RecipeInteractionService(db)
+    added = await service.add_favorite(user_id, recipe_id)
+
+    return ApiResponse(success=True, data=added)
+
+
+@router.delete("/{recipe_id}/favorites", response_model=ApiResponse[bool])
+async def remove_favorite(
+    recipe_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """레시피를 즐겨찾기에서 제거합니다."""
+    service = RecipeInteractionService(db)
+    removed = await service.remove_favorite(user_id, recipe_id)
+
+    return ApiResponse(success=True, data=removed)

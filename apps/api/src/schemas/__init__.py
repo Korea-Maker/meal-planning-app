@@ -40,6 +40,15 @@ from src.schemas.shopping_list import (
     ShoppingListWithItemsResponse,
 )
 from src.schemas.user import UserCreate, UserProfileUpdate, UserResponse
+from src.schemas.recipe_interaction import (
+    RecipeFavoriteResponse,
+    RecipeInteractionResponse,
+    RecipeRatingCreate,
+    RecipeRatingResponse,
+    RecipeRatingUpdate,
+    RecipeRatingWithUserResponse,
+    RecipeStatsResponse,
+)
 
 __all__ = [
     # Auth
@@ -84,4 +93,12 @@ __all__ = [
     "ShoppingItemCreate",
     "ShoppingItemUpdate",
     "ShoppingItemResponse",
+    # Recipe Interaction
+    "RecipeRatingCreate",
+    "RecipeRatingUpdate",
+    "RecipeRatingResponse",
+    "RecipeRatingWithUserResponse",
+    "RecipeFavoriteResponse",
+    "RecipeStatsResponse",
+    "RecipeInteractionResponse",
 ]

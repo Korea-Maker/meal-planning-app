@@ -22,9 +22,13 @@ const config = {
     extraNodeModules: {
       '@meal-planning/shared-types': path.resolve(monorepoRoot, 'packages/shared-types'),
       '@meal-planning/constants': path.resolve(monorepoRoot, 'packages/constants'),
-      // Explicitly resolve react-native from monorepo root for pnpm
-      'react-native': path.resolve(monorepoRoot, 'node_modules/react-native'),
-      'react': path.resolve(monorepoRoot, 'node_modules/react'),
+      // Explicitly resolve react-native and react from mobile's node_modules
+      'react-native': path.resolve(projectRoot, 'node_modules/react-native'),
+      'react': path.resolve(projectRoot, 'node_modules/react'),
+      // React Navigation packages from monorepo root
+      '@react-navigation/native': path.resolve(monorepoRoot, 'node_modules/@react-navigation/native'),
+      '@react-navigation/stack': path.resolve(monorepoRoot, 'node_modules/@react-navigation/stack'),
+      '@react-navigation/bottom-tabs': path.resolve(monorepoRoot, 'node_modules/@react-navigation/bottom-tabs'),
     },
     // Enable symlinks for pnpm compatibility
     unstable_enableSymlinks: true,

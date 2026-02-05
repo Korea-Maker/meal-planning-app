@@ -1,23 +1,15 @@
 /**
  * Meal Planning App - React Native Mobile
- * AI-powered family meal planning application
+ * Minimal working version without navigation
  */
 
 import React from 'react';
-import { StatusBar, StyleSheet, LogBox } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { StatusBar, StyleSheet, View, Text, SafeAreaView } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from './src/contexts/AuthContext';
-import { RootNavigator } from './src/navigation/RootNavigator';
 import { colors } from './src/styles';
-
-// Ignore specific warnings in development
-LogBox.ignoreLogs([
-  'Non-serializable values were found in the navigation state',
-]);
 
 // Create a React Query client
 const queryClient = new QueryClient({
@@ -30,34 +22,30 @@ const queryClient = new QueryClient({
   },
 });
 
+function MainContent() {
+  return (
+    <View style={styles.content}>
+      <Text style={styles.title}>🍽️ Meal Planning App</Text>
+      <Text style={styles.subtitle}>iOS 앱이 성공적으로 실행되었습니다!</Text>
+      <Text style={styles.info}>React Native 0.79.7</Text>
+    </View>
+  );
+}
+
 function App(): React.JSX.Element {
   return (
     <GestureHandlerRootView style={styles.container}>
-      <SafeAreaProvider>
+      <SafeAreaView style={styles.container}>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <NavigationContainer
-              theme={{
-                dark: false,
-                colors: {
-                  primary: colors.primary,
-                  background: colors.background,
-                  card: colors.card,
-                  text: colors.text,
-                  border: colors.border,
-                  notification: colors.primary,
-                },
-              }}
-            >
-              <StatusBar
-                barStyle="dark-content"
-                backgroundColor={colors.background}
-              />
-              <RootNavigator />
-            </NavigationContainer>
+            <StatusBar
+              barStyle="dark-content"
+              backgroundColor={colors.background}
+            />
+            <MainContent />
           </AuthProvider>
         </QueryClientProvider>
-      </SafeAreaProvider>
+      </SafeAreaView>
     </GestureHandlerRootView>
   );
 }
@@ -65,6 +53,29 @@ function App(): React.JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  subtitle: {
+    fontSize: 18,
+    color: colors.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  info: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
 });
 

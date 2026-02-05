@@ -18,6 +18,7 @@ from src.repositories.recipe import RecipeRepository
 from src.schemas.ingredient import IngredientCreate
 from src.schemas.instruction import InstructionCreate
 from src.schemas.recipe import RecipeCreate
+from src.services.seed_recipe import seed_recipe_service
 from src.services.translation import TranslationService
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ CACHE_TTL_SECONDS = 3600  # 1시간
 RATE_LIMIT_KEY_PREFIX = "external_recipe:rate_limit"
 CACHE_KEY_PREFIX = "external_recipe:cache"
 
-ExternalSource = Literal["spoonacular", "themealdb", "foodsafetykorea", "mafra"]
+ExternalSource = Literal["spoonacular", "themealdb", "foodsafetykorea", "mafra", "korean_seed"]
 
 
 class ExternalRecipeService:
@@ -65,12 +66,25 @@ class ExternalRecipeService:
         results = {
             "spoonacular": [],
             "themealdb": [],
-            "foodsafetykorea": [],
-            "mafra": [],
+            "korean_seed": [],
             "total": 0,
         }
 
-        per_source = number // 4
+        per_source = number // 3
+
+        # Korean seed recipes (always available, no API needed)
+        if seed_recipe_service.is_configured:
+            try:
+                if category:
+                    seed_results = seed_recipe_service.search_recipes(
+                        category=category,
+                        number=per_source,
+                    )
+                    results["korean_seed"] = seed_results.get("results", [])
+                else:
+                    results["korean_seed"] = seed_recipe_service.get_random_recipes(per_source)
+            except Exception as e:
+                logger.error(f"Korean seed discover error: {e}")
 
         if spoonacular_adapter.is_configured:
             try:
@@ -103,36 +117,6 @@ class ExternalRecipeService:
         except Exception as e:
             logger.error(f"TheMealDB discover error: {e}")
 
-        if foodsafetykorea_adapter.is_configured:
-            try:
-                if category:
-                    fsk_results = await foodsafetykorea_adapter.search_recipes(
-                        category=category,
-                        number=per_source,
-                    )
-                else:
-                    fsk_results = await foodsafetykorea_adapter.get_random_recipes(per_source)
-                    fsk_results = {"results": fsk_results}
-
-                results["foodsafetykorea"] = fsk_results.get("results", fsk_results) if isinstance(fsk_results, dict) else fsk_results
-            except Exception as e:
-                logger.error(f"FoodSafetyKorea discover error: {e}")
-
-        if mafra_adapter.is_configured:
-            try:
-                if category:
-                    mafra_results = await mafra_adapter.search_recipes(
-                        category=category,
-                        number=per_source,
-                    )
-                else:
-                    mafra_results = await mafra_adapter.get_random_recipes(per_source)
-                    mafra_results = {"results": mafra_results}
-
-                results["mafra"] = mafra_results.get("results", mafra_results) if isinstance(mafra_results, dict) else mafra_results
-            except Exception as e:
-                logger.error(f"MAFRA discover error: {e}")
-
         # Translate English sources (Spoonacular, TheMealDB) to Korean
         if self.translation.is_configured:
             if results["spoonacular"]:
@@ -140,7 +124,7 @@ class ExternalRecipeService:
             if results["themealdb"]:
                 results["themealdb"] = await self.translation.translate_recipes_batch(results["themealdb"])
 
-        results["total"] = len(results["spoonacular"]) + len(results["themealdb"]) + len(results["foodsafetykorea"]) + len(results["mafra"])
+        results["total"] = len(results["spoonacular"]) + len(results["themealdb"]) + len(results["korean_seed"])
 
         await self._cache_result(cache_key, results)
 
@@ -200,32 +184,19 @@ class ExternalRecipeService:
             except Exception as e:
                 logger.error(f"TheMealDB search error: {e}")
 
-        if source is None or source == "foodsafetykorea":
-            if foodsafetykorea_adapter.is_configured:
+        if source is None or source == "korean_seed":
+            if seed_recipe_service.is_configured:
                 try:
-                    fsk_results = await foodsafetykorea_adapter.search_recipes(
-                        query=query,
-                        number=limit,
-                        offset=offset,
-                    )
-                    results.extend(fsk_results.get("results", []))
-                    total += fsk_results.get("totalResults", 0)
-                except Exception as e:
-                    logger.error(f"FoodSafetyKorea search error: {e}")
-
-        if source is None or source == "mafra":
-            if mafra_adapter.is_configured:
-                try:
-                    mafra_results = await mafra_adapter.search_recipes(
+                    seed_results = seed_recipe_service.search_recipes(
                         query=query,
                         category=cuisine,
                         number=limit,
                         offset=offset,
                     )
-                    results.extend(mafra_results.get("results", []))
-                    total += mafra_results.get("totalResults", 0)
+                    results.extend(seed_results.get("results", []))
+                    total += seed_results.get("totalResults", 0)
                 except Exception as e:
-                    logger.error(f"MAFRA search error: {e}")
+                    logger.error(f"Korean seed search error: {e}")
 
         await self._increment_rate_limit(user_id)
 
@@ -280,6 +251,8 @@ class ExternalRecipeService:
             result = await foodsafetykorea_adapter.get_recipe_details(external_id)
         elif source == "mafra":
             result = await mafra_adapter.get_recipe_details(external_id)
+        elif source == "korean_seed":
+            result = seed_recipe_service.get_recipe_by_id(external_id)
 
         if result:
             # Translate English sources to Korean
@@ -405,6 +378,13 @@ class ExternalRecipeService:
     async def get_available_sources(self) -> list[dict[str, Any]]:
         """Get list of available external sources."""
         sources = []
+
+        sources.append({
+            "id": "korean_seed",
+            "name": "한국 레시피",
+            "description": "한국 전통 및 가정식 레시피 (30종, API 키 불필요)",
+            "available": seed_recipe_service.is_configured,
+        })
 
         sources.append({
             "id": "themealdb",

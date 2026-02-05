@@ -95,7 +95,7 @@ class URLExtractionResponse(BaseModel):
 
 
 # External Recipe Schemas
-ExternalRecipeSource = Literal["spoonacular", "themealdb", "foodsafetykorea", "mafra"]
+ExternalRecipeSource = Literal["spoonacular", "themealdb", "foodsafetykorea", "mafra", "korean_seed"]
 
 
 class ExternalRecipePreview(BaseModel):

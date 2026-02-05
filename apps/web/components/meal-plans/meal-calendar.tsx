@@ -599,7 +599,7 @@ export function MealCalendar() {
                             <img
                               src={slot.recipe.image_url}
                               alt={slot.recipe.title}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-contain"
                             />
                           </div>
                         ) : (

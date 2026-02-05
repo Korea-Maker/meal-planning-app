@@ -190,7 +190,7 @@ export function MealSlot({ slot, onDelete, onDragStart, onClick, compact = false
           <img
             src={slot.recipe.image_url}
             alt={slot.recipe.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             draggable={false}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />

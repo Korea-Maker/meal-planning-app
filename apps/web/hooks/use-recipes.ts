@@ -24,16 +24,25 @@ const RECIPES_KEY = 'recipes'
 export function useRecipes(params?: RecipeSearchParams) {
   const queryParams = new URLSearchParams()
 
+  // 검색 파라미터가 있는지 확인
+  const hasSearchParams = params?.query || params?.categories?.length ||
+    params?.difficulty || params?.max_prep_time || params?.max_cook_time
+
   if (params?.query) queryParams.set('query', params.query)
   if (params?.categories?.length) queryParams.set('categories', params.categories.join(','))
   if (params?.difficulty) queryParams.set('difficulty', params.difficulty)
   if (params?.max_prep_time) queryParams.set('max_prep_time', params.max_prep_time.toString())
   if (params?.max_cook_time) queryParams.set('max_cook_time', params.max_cook_time.toString())
-  if (params?.page) queryParams.set('page', params.page.toString())
-  if (params?.limit) queryParams.set('limit', params.limit.toString())
+
+  // 페이지네이션 (기본값: 100개)
+  queryParams.set('page', (params?.page || 1).toString())
+  queryParams.set('limit', (params?.limit || 100).toString())
 
   const queryString = queryParams.toString()
-  const endpoint = queryString ? `/recipes?${queryString}` : '/recipes'
+  // 검색 파라미터가 있으면 /recipes/search 사용, 없으면 /recipes 사용
+  const endpoint = hasSearchParams
+    ? `/recipes/search?${queryString}`
+    : `/recipes?${queryString}`
 
   return useQuery({
     queryKey: [RECIPES_KEY, params],

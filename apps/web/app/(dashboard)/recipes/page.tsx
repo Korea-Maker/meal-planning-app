@@ -38,6 +38,7 @@ export default function RecipesPage() {
   const [filters, setFilters] = useState<RecipeFilters>({})
   const [showFilters, setShowFilters] = useState(false)
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+  const [page, setPage] = useState(1)
   const queryClient = useQueryClient()
 
   const { data, isLoading, refetch } = useRecipes({
@@ -45,6 +46,8 @@ export default function RecipesPage() {
     categories: filters.category ? [filters.category] : undefined,
     difficulty: filters.difficulty,
     max_cook_time: filters.maxCookTime,
+    page,
+    limit: 24,
   })
 
   const { data: favoritesData, isLoading: isFavoritesLoading } = useFavoriteRecipes()
@@ -84,7 +87,10 @@ export default function RecipesPage() {
             <Input
               placeholder="레시피 검색..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
               className="pl-10"
               disabled={showFavoritesOnly}
             />
@@ -153,6 +159,11 @@ export default function RecipesPage() {
         <>
           <p className="text-sm text-gray-500">
             {data?.meta?.total || recipes.length}개의 레시피
+            {data?.meta?.total_pages && data.meta.total_pages > 1 && (
+              <span className="ml-2">
+                (페이지 {page} / {data.meta.total_pages})
+              </span>
+            )}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {recipes.map((recipe) => (
@@ -163,7 +174,7 @@ export default function RecipesPage() {
                       <img
                         src={recipe.image_url}
                         alt={recipe.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     </div>
                   )}
@@ -202,6 +213,69 @@ export default function RecipesPage() {
               </Card>
             ))}
           </div>
+
+          {/* 페이지네이션 */}
+          {data?.meta?.total_pages && data.meta.total_pages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                이전
+              </Button>
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(5, data.meta.total_pages) }, (_, i) => {
+                  let pageNum: number
+                  if (data.meta.total_pages <= 5) {
+                    pageNum = i + 1
+                  } else if (page <= 3) {
+                    pageNum = i + 1
+                  } else if (page >= data.meta.total_pages - 2) {
+                    pageNum = data.meta.total_pages - 4 + i
+                  } else {
+                    pageNum = page - 2 + i
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={page === pageNum ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPage(pageNum)}
+                      className="w-10"
+                    >
+                      {pageNum}
+                    </Button>
+                  )
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(data.meta.total_pages, p + 1))}
+                disabled={page === data.meta.total_pages}
+              >
+                다음
+              </Button>
+              <div className="flex items-center gap-2 ml-4 pl-4 border-l">
+                <Input
+                  type="number"
+                  min={1}
+                  max={data.meta.total_pages}
+                  value={page}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value)
+                    if (val >= 1 && val <= data.meta.total_pages) {
+                      setPage(val)
+                    }
+                  }}
+                  className="w-16 text-center"
+                />
+                <span className="text-sm text-gray-500">/ {data.meta.total_pages}</span>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

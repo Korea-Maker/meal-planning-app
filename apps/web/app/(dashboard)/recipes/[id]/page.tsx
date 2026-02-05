@@ -200,7 +200,7 @@ export default function RecipeDetailPage({ params }: Props) {
               <img
                 src={recipe.image_url}
                 alt={recipe.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
           )}

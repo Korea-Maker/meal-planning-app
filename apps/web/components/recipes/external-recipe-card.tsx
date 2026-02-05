@@ -170,13 +170,13 @@ export function ExternalRecipeCard({ recipe, onImported }: ExternalRecipeCardPro
   return (
     <>
       <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowDetail(true)}>
-        <div className="relative aspect-video">
+        <div className="relative aspect-video bg-gray-100">
           {recipe.image_url ? (
             <Image
               src={recipe.image_url}
               alt={recipe.title}
               fill
-              className="object-cover"
+              className="object-contain"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
@@ -242,12 +242,13 @@ export function ExternalRecipeCard({ recipe, onImported }: ExternalRecipeCardPro
           ) : detail ? (
             <div className="space-y-4">
               {detail.image_url && (
-                <div className="relative aspect-video rounded-lg overflow-hidden">
+                <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100">
                   <Image
                     src={detail.image_url}
                     alt={detail.title}
                     fill
-                    className="object-cover"
+                    className="object-contain"
+                    sizes="(max-width: 768px) 100vw, 672px"
                   />
                 </div>
               )}

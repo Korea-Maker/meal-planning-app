@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
 import type {
   MainTabParamList,
   RecipeStackParamList,
@@ -22,10 +22,10 @@ import ProfileScreen from '../screens/profile/ProfileScreen';
 import { View, Text, StyleSheet } from 'react-native';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
-const RecipeStack = createNativeStackNavigator<RecipeStackParamList>();
-const MealPlanStack = createNativeStackNavigator<MealPlanStackParamList>();
-const ShoppingStack = createNativeStackNavigator<ShoppingStackParamList>();
-const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
+const RecipeStack = createStackNavigator<RecipeStackParamList>();
+const MealPlanStack = createStackNavigator<MealPlanStackParamList>();
+const ShoppingStack = createStackNavigator<ShoppingStackParamList>();
+const ProfileStack = createStackNavigator<ProfileStackParamList>();
 
 // Tab Icon Component
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import type { RootStackParamList } from './types';
 import { AuthNavigator } from './AuthNavigator';
@@ -7,7 +7,7 @@ import { MainNavigator } from './MainNavigator';
 import { useAuth } from '../contexts/AuthContext';
 import { colors } from '../styles';
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
   const { isAuthenticated, isLoading } = useAuth();

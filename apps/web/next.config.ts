@@ -29,6 +29,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'www.foodsafetykorea.go.kr',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
   },
 }

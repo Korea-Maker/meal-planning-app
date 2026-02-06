@@ -147,6 +147,7 @@ class ExternalSourceInfo(BaseModel):
 class DiscoverRecipesResponse(BaseModel):
     """레시피 발견 응답."""
 
+    korean_seed: list[ExternalRecipePreview] = Field(default_factory=list)
     spoonacular: list[ExternalRecipePreview] = Field(default_factory=list)
     themealdb: list[ExternalRecipePreview] = Field(default_factory=list)
     total: int = 0

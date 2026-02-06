@@ -82,6 +82,7 @@ export function AutoFillDialog({
     }
 
     const recipes = [
+      ...(discoverData?.korean_seed || []),
       ...(discoverData?.spoonacular || []),
       ...(discoverData?.themealdb || []),
     ]

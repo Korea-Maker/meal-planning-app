@@ -22,19 +22,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
 
       - name: Gitleaks 스캔 실행
-        uses: gitleaks/gitleaks-action@1f2d10fb689bc07a5f56f48d6db61f94bac2fd13 # v2.3.6
+        uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_SUMMARY: true
 
       - name: Gitleaks 결과 업로드
         if: failure()
-        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+        uses: actions/upload-artifact@v4.4.3
         with:
           name: gitleaks-report
           path: results.sarif
@@ -45,10 +45,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4.2.2
 
       - name: Python 설정
-        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -67,7 +67,7 @@ jobs:
             --exit-zero
 
       - name: Bandit SARIF 업로드
-        uses: github/codeql-action/upload-sarif@8a470fddafa5cbb6266ee11b37ef4d8aae19c571 # v3.24.6
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: bandit-results.sarif
@@ -92,10 +92,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4.2.2
 
       - name: Semgrep 스캔 실행 (Frontend + Backend)
-        uses: semgrep/semgrep-action@713efdd345f3035d9d12e71a2f4b96d0fca7c82e # v1
+        uses: semgrep/semgrep-action@v1
         with:
           config: >-
             p/security-audit
@@ -108,7 +108,7 @@ jobs:
           generateSarif: true
 
       - name: Semgrep SARIF 업로드
-        uses: github/codeql-action/upload-sarif@8a470fddafa5cbb6266ee11b37ef4d8aae19c571 # v3.24.6
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: semgrep.sarif
@@ -144,10 +144,10 @@ jobs:
             type: node
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4.2.2
 
       - name: Trivy 스캔 실행 - ${{ matrix.target.name }}
-        uses: aquasecurity/trivy-action@fd25fed6972e341ff0007ddb61f77e88103953c2 # v0.21.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           scan-type: 'fs'
           scan-ref: ${{ matrix.target.path }}
@@ -157,14 +157,14 @@ jobs:
           exit-code: '0'
 
       - name: Trivy SARIF 업로드 - ${{ matrix.target.name }}
-        uses: github/codeql-action/upload-sarif@8a470fddafa5cbb6266ee11b37ef4d8aae19c571 # v3.24.6
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-${{ matrix.target.type }}-results.sarif'
           category: 'trivy-${{ matrix.target.type }}'
 
       - name: Trivy 스캔 실행 (테이블 형식) - ${{ matrix.target.name }}
-        uses: aquasecurity/trivy-action@fd25fed6972e341ff0007ddb61f77e88103953c2 # v0.21.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           scan-type: 'fs'
           scan-ref: ${{ matrix.target.path }}

@@ -73,7 +73,10 @@ class ExternalRecipeService:
         per_source = number // 3
 
         # Korean seed recipes (always available, no API needed)
-        if seed_recipe_service.is_configured:
+        # Include korean_seed when: no cuisine filter, or cuisine is Korean
+        # Skip when cuisine is explicitly non-Korean (Japanese, Chinese, etc.)
+        include_korean_seed = not cuisine or "korean" in cuisine.lower()
+        if seed_recipe_service.is_configured and include_korean_seed:
             try:
                 if category:
                     seed_results = seed_recipe_service.search_recipes(

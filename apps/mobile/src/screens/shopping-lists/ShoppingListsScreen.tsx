@@ -8,16 +8,13 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { ShoppingStackScreenProps } from '../../navigation/types';
+import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import { useShoppingLists } from '../../hooks';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 import type { ShoppingList } from '@meal-planning/shared-types';
 
-type NavigationProp = ShoppingStackScreenProps<'ShoppingLists'>['navigation'];
-
 export default function ShoppingListsScreen() {
-  const navigation = useNavigation<NavigationProp>();
+  const navigation = useSimpleNavigation();
   const { data, isLoading, error, refetch } = useShoppingLists();
 
   const handlePress = (listId: string) => {

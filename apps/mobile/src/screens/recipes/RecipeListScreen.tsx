@@ -10,14 +10,11 @@ import {
   TextInput,
   RefreshControl,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RecipeStackParamList } from '../../navigation/types';
 import type { Recipe } from '@meal-planning/shared-types';
 import { useRecipes } from '../../hooks';
+import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 
-type NavigationProp = NativeStackNavigationProp<RecipeStackParamList, 'RecipeList'>;
 type DifficultyKey = 'easy' | 'medium' | 'hard';
 
 const DIFFICULTY_LABELS: Record<DifficultyKey, string> = {
@@ -39,7 +36,7 @@ const badgeStyles: Record<DifficultyKey, ViewStyle> = {
 };
 
 export default function RecipeListScreen() {
-  const navigation = useNavigation<NavigationProp>();
+  const navigation = useSimpleNavigation();
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data, isLoading, error, refetch } = useRecipes(

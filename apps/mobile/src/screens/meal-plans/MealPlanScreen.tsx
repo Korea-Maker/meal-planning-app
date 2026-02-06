@@ -9,8 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { MealPlanStackScreenProps } from '../../navigation/types';
+import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import {
   useWeekMealPlan,
   useCreateMealPlan,
@@ -50,10 +49,8 @@ const mealSlotStyles: Record<MealKey, ViewStyle> = {
   },
 };
 
-type MealPlanCalendarScreenProps = MealPlanStackScreenProps<'MealPlanCalendar'>;
-
 export default function MealPlanScreen() {
-  const navigation = useNavigation<MealPlanCalendarScreenProps['navigation']>();
+  const navigation = useSimpleNavigation();
 
   // Generate current week dates (Sunday to Saturday)
   const { weekDates, weekStartDate, weekStartDateISO } = useMemo(() => {

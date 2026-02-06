@@ -356,6 +356,7 @@ export interface ExternalSourceInfo {
 }
 
 export interface DiscoverRecipesResponse {
+  korean_seed: ExternalRecipePreview[]
   spoonacular: ExternalRecipePreview[]
   themealdb: ExternalRecipePreview[]
   total: number

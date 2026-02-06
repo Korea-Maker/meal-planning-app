@@ -31,7 +31,7 @@ class TranslationService:
 
     def _get_cache_key(self, text: str) -> str:
         """Generate cache key for text."""
-        text_hash = hashlib.md5(text.encode()).hexdigest()
+        text_hash = hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()
         return f"{CACHE_KEY_PREFIX}:{text_hash}"
 
     async def _get_cached(self, text: str) -> str | None:

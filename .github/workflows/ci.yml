@@ -38,6 +38,7 @@ jobs:
         uses: astral-sh/setup-uv@v4.1.0
         with:
           enable-cache: true
+          cache-dependency-glob: "apps/api/uv.lock"
 
       - name: 의존성 설치 (Frontend)
         run: pnpm install --frozen-lockfile
@@ -153,6 +154,7 @@ jobs:
         uses: astral-sh/setup-uv@v4.1.0
         with:
           enable-cache: true
+          cache-dependency-glob: "apps/api/uv.lock"
 
       - name: 의존성 설치
         working-directory: ./apps/api
@@ -210,6 +212,7 @@ jobs:
         uses: astral-sh/setup-uv@v4.1.0
         with:
           enable-cache: true
+          cache-dependency-glob: "apps/api/uv.lock"
 
       - name: 의존성 설치 (Frontend)
         run: pnpm install --frozen-lockfile

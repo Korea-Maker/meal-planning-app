@@ -9,6 +9,7 @@ import {
   ViewStyle,
   TextInput,
   RefreshControl,
+  Image,
 } from 'react-native';
 import type { Recipe } from '@meal-planning/shared-types';
 import { useRecipes, useBrowseRecipes } from '../../hooks';
@@ -68,9 +69,11 @@ export default function RecipeListScreen() {
         onPress={() => navigation.navigate('RecipeDetail', { recipeId: String(item.id) })}
       >
         {item.image_url ? (
-          <View style={styles.recipeImageContainer}>
-            <Text style={styles.recipeImagePlaceholder}>🖼️</Text>
-          </View>
+          <Image
+            source={{ uri: item.image_url }}
+            style={styles.recipeImage}
+            resizeMode="cover"
+          />
         ) : (
           <View style={styles.recipePlaceholder}>
             <Text style={styles.recipePlaceholderText}>🍳</Text>
@@ -328,15 +331,9 @@ const styles = StyleSheet.create({
     fontSize: 48,
     opacity: 0.5,
   },
-  recipeImageContainer: {
+  recipeImage: {
     height: 160,
-    backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  recipeImagePlaceholder: {
-    fontSize: 48,
-    opacity: 0.5,
+    width: '100%',
   },
   recipeInfo: {
     padding: spacing.lg,

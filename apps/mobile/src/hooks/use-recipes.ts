@@ -127,3 +127,16 @@ export function useBrowseRecipes(params?: { query?: string; page?: number; limit
     },
   });
 }
+
+export function useBrowseRecipeDetail(id: string, options?: UseRecipeOptions) {
+  const isEnabled = options?.enabled !== undefined ? options.enabled : Boolean(id);
+
+  return useQuery({
+    queryKey: ['browse-recipes', 'detail', id],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<RecipeWithDetails>>(`/recipes/browse/${id}`);
+      return response.data;
+    },
+    enabled: isEnabled,
+  });
+}

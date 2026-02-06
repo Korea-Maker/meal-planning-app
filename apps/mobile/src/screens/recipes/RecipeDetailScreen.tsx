@@ -8,11 +8,12 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Image,
 } from 'react-native';
 import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 import {
-  useRecipe,
+  useBrowseRecipeDetail,
   useRecipeStats,
   useMyRating,
   useIsFavorite,
@@ -42,7 +43,7 @@ export default function RecipeDetailScreen({ route }: RecipeDetailScreenProps) {
   const [reviewText, setReviewText] = useState('');
 
   // Fetch data
-  const { data: recipe, isLoading: recipeLoading } = useRecipe(recipeId);
+  const { data: recipe, isLoading: recipeLoading } = useBrowseRecipeDetail(recipeId);
   const { data: stats, isLoading: statsLoading } = useRecipeStats(recipeId);
   const { data: myRating, isLoading: myRatingLoading } = useMyRating(recipeId);
   const { data: isFavorite, isLoading: favoriteLoading } = useIsFavorite(recipeId);
@@ -154,9 +155,11 @@ export default function RecipeDetailScreen({ route }: RecipeDetailScreenProps) {
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* Image */}
         {recipe.image_url ? (
-          <View style={styles.imageContainer}>
-            <Text style={styles.imagePlaceholderText}>🍳</Text>
-          </View>
+          <Image
+            source={{ uri: recipe.image_url }}
+            style={styles.recipeImage}
+            resizeMode="cover"
+          />
         ) : (
           <View style={styles.imagePlaceholder}>
             <Text style={styles.imagePlaceholderText}>🍳</Text>
@@ -482,11 +485,9 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
-  imageContainer: {
+  recipeImage: {
     height: 250,
-    backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: '100%',
   },
   imagePlaceholder: {
     height: 250,

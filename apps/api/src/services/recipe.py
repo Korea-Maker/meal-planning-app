@@ -55,6 +55,13 @@ class RecipeService:
             raise RecipeNotFoundError(recipe_id)
         return recipe
 
+    async def get_recipe_public(self, recipe_id: str) -> Recipe:
+        """Get recipe by ID without user ownership check (for browsing)"""
+        recipe = await self.recipe_repo.get_by_id_with_details(recipe_id)
+        if not recipe:
+            raise RecipeNotFoundError(recipe_id)
+        return recipe
+
     async def get_user_recipes(
         self,
         user_id: str,

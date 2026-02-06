@@ -138,6 +138,26 @@ async def browse_all_recipes(
     )
 
 
+@router.get("/browse/{recipe_id}", response_model=ApiResponse[RecipeWithDetailsResponse])
+async def get_browse_recipe(
+    recipe_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get recipe detail without ownership check (for browsing).
+
+    This endpoint allows users to view recipes created by other users.
+    """
+    service = RecipeService(db)
+    recipe = await service.get_recipe_public(recipe_id)
+
+    return ApiResponse(
+        success=True,
+        data=RecipeWithDetailsResponse.model_validate(recipe),
+    )
+
+
 @router.post("/extract-from-url", response_model=URLExtractionResponse)
 async def extract_recipe_from_url(
     data: URLExtractionRequest,

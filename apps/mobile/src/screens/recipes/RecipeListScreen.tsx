@@ -11,7 +11,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import type { Recipe } from '@meal-planning/shared-types';
-import { useRecipes } from '../../hooks';
+import { useRecipes, useBrowseRecipes } from '../../hooks';
 import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 
@@ -38,10 +38,17 @@ const badgeStyles: Record<DifficultyKey, ViewStyle> = {
 export default function RecipeListScreen() {
   const navigation = useSimpleNavigation();
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeSection, setActiveSection] = useState<'browse' | 'mine'>('browse');
 
-  const { data, isLoading, error, refetch } = useRecipes(
-    searchQuery ? { query: searchQuery } : undefined
+  const browseResult = useBrowseRecipes(
+    activeSection === 'browse' ? (searchQuery ? { query: searchQuery } : undefined) : undefined
   );
+  const myResult = useRecipes(
+    activeSection === 'mine' ? (searchQuery ? { query: searchQuery } : undefined) : undefined
+  );
+
+  const currentData = activeSection === 'browse' ? browseResult : myResult;
+  const { data, isLoading, error, refetch } = currentData;
 
   const recipes = data?.data || [];
   const [refreshing, setRefreshing] = React.useState(false);
@@ -149,6 +156,26 @@ export default function RecipeListScreen() {
         </View>
       </View>
 
+      {/* Segment Control */}
+      <View style={styles.segmentContainer}>
+        <TouchableOpacity
+          style={[styles.segmentButton, activeSection === 'browse' && styles.segmentButtonActive]}
+          onPress={() => setActiveSection('browse')}
+        >
+          <Text style={[styles.segmentText, activeSection === 'browse' && styles.segmentTextActive]}>
+            전체 레시피
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.segmentButton, activeSection === 'mine' && styles.segmentButtonActive]}
+          onPress={() => setActiveSection('mine')}
+        >
+          <Text style={[styles.segmentText, activeSection === 'mine' && styles.segmentTextActive]}>
+            내 레시피
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Recipe List */}
       <FlatList
         data={recipes}
@@ -170,11 +197,17 @@ export default function RecipeListScreen() {
               {searchQuery ? '🔍' : '🍳'}
             </Text>
             <Text style={styles.emptyTitle}>
-              {searchQuery ? '검색 결과가 없습니다' : '레시피가 없습니다'}
+              {searchQuery
+                ? '검색 결과가 없습니다'
+                : activeSection === 'mine'
+                ? '아직 내 레시피가 없습니다'
+                : '레시피가 없습니다'}
             </Text>
             <Text style={styles.emptySubtitle}>
               {searchQuery
                 ? '다른 검색어로 시도해보세요'
+                : activeSection === 'mine'
+                ? '레시피를 추가하거나 전체 레시피에서 가져오세요'
                 : '첫 레시피를 추가해보세요'}
             </Text>
           </View>
@@ -374,5 +407,31 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: colors.textLight,
     fontWeight: '300',
+  },
+  segmentContainer: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.xl,
+    padding: 2,
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+    borderRadius: borderRadius.lg,
+  },
+  segmentButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  segmentText: {
+    ...typography.button,
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  segmentTextActive: {
+    color: colors.textLight,
   },
 });

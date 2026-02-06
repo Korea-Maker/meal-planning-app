@@ -131,3 +131,57 @@ class RecipeRepository(BaseRepository[Recipe]):
             )
         )
         return result.scalar_one_or_none()
+
+    async def get_all_recipes(
+        self,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> tuple[list[Recipe], int]:
+        """Get all recipes (no user_id filter) for browsing"""
+        # Count total
+        count_result = await self.session.execute(
+            select(func.count()).select_from(Recipe)
+        )
+        total = count_result.scalar_one()
+
+        # Get paginated results
+        result = await self.session.execute(
+            select(Recipe)
+            .order_by(Recipe.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        return list(result.scalars().all()), total
+
+    async def search_all(
+        self,
+        query: str | None = None,
+        categories: list[str] | None = None,
+        difficulty: str | None = None,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> tuple[list[Recipe], int]:
+        """Search all recipes (no user_id filter) for browsing"""
+        stmt = select(Recipe)
+
+        if query:
+            search_pattern = f"%{query}%"
+            stmt = stmt.where(Recipe.title.ilike(search_pattern))
+
+        if categories:
+            stmt = stmt.where(Recipe.categories.overlap(categories))
+
+        if difficulty:
+            stmt = stmt.where(Recipe.difficulty == difficulty)
+
+        # Count total
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        count_result = await self.session.execute(count_stmt)
+        total = count_result.scalar_one()
+
+        # Get paginated results
+        stmt = stmt.order_by(Recipe.created_at.desc()).offset(skip).limit(limit)
+        result = await self.session.execute(stmt)
+        recipes = list(result.scalars().all())
+
+        return recipes, total

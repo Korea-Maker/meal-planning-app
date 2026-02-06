@@ -109,3 +109,21 @@ export function useAdjustServings() {
     },
   });
 }
+
+export function useBrowseRecipes(params?: { query?: string; page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ['browse-recipes', params],
+    queryFn: async () => {
+      let endpoint = '/recipes/browse';
+      if (params && Object.keys(params).length > 0) {
+        const searchParams = new URLSearchParams();
+        if (params.query) searchParams.append('query', params.query);
+        if (params.page) searchParams.append('page', String(params.page));
+        if (params.limit) searchParams.append('limit', String(params.limit));
+        const qs = searchParams.toString();
+        if (qs) endpoint += `?${qs}`;
+      }
+      return api.get<PaginatedResponse<Recipe>>(endpoint);
+    },
+  });
+}

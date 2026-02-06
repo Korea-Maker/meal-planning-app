@@ -106,6 +106,38 @@ async def search_recipes(
     )
 
 
+@router.get("/browse", response_model=PaginatedResponse[RecipeResponse])
+async def browse_all_recipes(
+    query: str | None = None,
+    categories: Annotated[list[RecipeCategory] | None, Query()] = None,
+    difficulty: RecipeDifficulty | None = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Browse all recipes from all users (not filtered by user_id).
+
+    This endpoint allows users to discover recipes created by other users.
+    Useful for finding inspiration from the 507 Korean recipes in the database.
+    """
+    service = RecipeService(db)
+    recipes, meta = await service.browse_recipes(
+        query=query,
+        categories=categories,
+        difficulty=difficulty,
+        page=page,
+        limit=limit,
+    )
+
+    return PaginatedResponse(
+        success=True,
+        data=[RecipeResponse.model_validate(r) for r in recipes],
+        meta=meta,
+    )
+
+
 @router.post("/extract-from-url", response_model=URLExtractionResponse)
 async def extract_recipe_from_url(
     data: URLExtractionRequest,

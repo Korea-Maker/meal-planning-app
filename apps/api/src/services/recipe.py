@@ -143,3 +143,34 @@ class RecipeService:
         await self.session.flush()
 
         return await self.recipe_repo.get_by_id_with_details(recipe.id)  # type: ignore
+
+    async def browse_recipes(
+        self,
+        query: str | None = None,
+        categories: list[str] | None = None,
+        difficulty: str | None = None,
+        page: int = 1,
+        limit: int = 20,
+    ) -> tuple[list[Recipe], PaginationMeta]:
+        """Browse all recipes (not filtered by user_id) for discovery"""
+        skip = (page - 1) * limit
+
+        if query or categories or difficulty:
+            recipes, total = await self.recipe_repo.search_all(
+                query=query,
+                categories=categories,
+                difficulty=difficulty,
+                skip=skip,
+                limit=limit,
+            )
+        else:
+            recipes, total = await self.recipe_repo.get_all_recipes(skip, limit)
+
+        meta = PaginationMeta(
+            total=total,
+            page=page,
+            limit=limit,
+            total_pages=(total + limit - 1) // limit,
+        )
+
+        return recipes, meta

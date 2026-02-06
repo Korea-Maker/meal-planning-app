@@ -6,6 +6,7 @@ export {
   useUpdateRecipe,
   useDeleteRecipe,
   useAdjustServings,
+  useBrowseRecipes,
 } from './use-recipes';
 
 // Meal plan hooks

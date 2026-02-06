@@ -31,10 +31,10 @@ const MEAL_TYPES: { value: MealType; label: string; icon: string }[] = [
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
 const MEAL_COLORS: Record<MealType, { bg: string; border: string; text: string }> = {
-  breakfast: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700' },
-  lunch: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700' },
-  dinner: { bg: 'bg-violet-50', border: 'border-violet-200', text: 'text-violet-700' },
-  snack: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700' },
+  breakfast: { bg: 'bg-amber-50', border: 'border-amber-300', text: 'text-amber-700' },
+  lunch: { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-700' },
+  dinner: { bg: 'bg-rose-50', border: 'border-rose-300', text: 'text-rose-700' },
+  snack: { bg: 'bg-pink-50', border: 'border-pink-300', text: 'text-pink-700' },
 }
 
 // Droppable meal section component

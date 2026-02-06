@@ -11,16 +11,14 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { AuthStackParamList } from '../../navigation/types';
 import { useAuth } from '../../contexts/AuthContext';
 import { colors, typography, spacing, borderRadius } from '../../styles';
 
-type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+interface LoginScreenProps {
+  onSwitchToRegister: () => void;
+}
 
-export default function LoginScreen() {
-  const navigation = useNavigation<NavigationProp>();
+export default function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
   const { login } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -103,7 +101,7 @@ export default function LoginScreen() {
 
           <TouchableOpacity
             style={styles.linkButton}
-            onPress={() => navigation.navigate('Register')}
+            onPress={onSwitchToRegister}
           >
             <Text style={styles.linkText}>
               계정이 없으신가요? <Text style={styles.linkTextBold}>회원가입</Text>

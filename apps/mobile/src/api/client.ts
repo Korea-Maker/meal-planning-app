@@ -32,15 +32,21 @@ class ApiClient {
   private accessToken: string | null = null;
 
   private buildUrl(endpoint: string, params?: Record<string, unknown>): string {
-    const url = new URL(`${API_URL}${endpoint}`);
+    let urlStr = `${API_URL}${endpoint}`;
     if (params) {
+      const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          url.searchParams.append(key, String(value));
+          searchParams.append(key, String(value));
         }
       });
+      const qs = searchParams.toString();
+      if (qs) {
+        urlStr += `?${qs}`;
+      }
     }
-    return url.toString();
+    // Strip trailing slash to prevent 307 redirects that drop Authorization header
+    return urlStr.replace(/\/(\?|$)/, '$1');
   }
 
   private async getHeaders(): Promise<Record<string, string>> {

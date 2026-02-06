@@ -4,48 +4,89 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* 따뜻한 오렌지/코랄 테마 - 오늘의집/마켓컬리 스타일 */
+    --background: 20 40% 98%;
+    --foreground: 15 30% 18%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 15 30% 18%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 142.1 76.2% 36.3%;
-    --primary-foreground: 355.7 100% 97.3%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 142.1 76.2% 36.3%;
-    --radius: 0.5rem;
+    --popover-foreground: 15 30% 18%;
+    --primary: 14 90% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 20 50% 96%;
+    --secondary-foreground: 15 30% 25%;
+    --muted: 20 30% 94%;
+    --muted-foreground: 15 15% 45%;
+    --accent: 8 85% 65%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 20% 90%;
+    --input: 20 20% 90%;
+    --ring: 14 90% 58%;
+    --radius: 1rem;
+
+    /* 추가 브랜드 색상 */
+    --coral: 14 90% 58%;
+    --coral-light: 14 90% 95%;
+    --salmon: 8 85% 65%;
+    --cream: 30 60% 97%;
+    --warm-brown: 15 30% 25%;
+
+    /* 식사 타입별 색상 - 따뜻한 톤 */
+    --meal-breakfast: 35 90% 60%;
+    --meal-breakfast-bg: 35 90% 96%;
+    --meal-breakfast-border: 35 70% 82%;
+
+    --meal-lunch: 20 85% 55%;
+    --meal-lunch-bg: 20 85% 96%;
+    --meal-lunch-border: 20 70% 82%;
+
+    --meal-dinner: 350 65% 50%;
+    --meal-dinner-bg: 350 65% 96%;
+    --meal-dinner-border: 350 50% 82%;
+
+    --meal-snack: 330 70% 65%;
+    --meal-snack-bg: 330 70% 96%;
+    --meal-snack-border: 330 55% 85%;
+
+    /* 카테고리 색상 */
+    --category-breakfast: 35 90% 60%;
+    --category-lunch: 20 85% 55%;
+    --category-dinner: 350 65% 50%;
+    --category-snack: 330 70% 65%;
+    --category-dessert: 320 70% 60%;
+    --category-appetizer: 45 80% 55%;
+    --category-side: 160 50% 45%;
+    --category-drink: 200 70% 50%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 142.1 70.6% 45.3%;
-    --primary-foreground: 144.9 80.4% 10%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 142.4 71.8% 29.2%;
+    --background: 15 20% 8%;
+    --foreground: 20 15% 95%;
+    --card: 15 18% 12%;
+    --card-foreground: 20 15% 95%;
+    --popover: 15 15% 10%;
+    --popover-foreground: 20 15% 95%;
+    --primary: 14 85% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 15 15% 18%;
+    --secondary-foreground: 20 10% 90%;
+    --muted: 15 12% 20%;
+    --muted-foreground: 15 10% 60%;
+    --accent: 8 80% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 15 12% 22%;
+    --input: 15 12% 22%;
+    --ring: 14 85% 55%;
+
+    --coral: 14 85% 55%;
+    --coral-light: 14 40% 20%;
+    --salmon: 8 80% 60%;
+    --cream: 30 20% 12%;
+    --warm-brown: 20 15% 80%;
   }
 }
 
@@ -53,7 +94,146 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* 향상된 포커스 스타일 */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  /* 따뜻한 그라데이션 배경 */
+  .gradient-warm {
+    background: linear-gradient(135deg, hsl(var(--coral-light)) 0%, hsl(var(--cream)) 100%);
+  }
+
+  .gradient-coral {
+    background: linear-gradient(135deg, hsl(var(--coral)) 0%, hsl(var(--salmon)) 100%);
+  }
+
+  /* 부드러운 카드 스타일 */
+  .card-warm {
+    @apply bg-card rounded-2xl border border-border/50;
+    box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.05),
+                0 4px 16px -4px rgba(0, 0, 0, 0.05);
+  }
+
+  .card-warm:hover {
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08),
+                0 8px 24px -4px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+    transition: all 0.2s ease-out;
+  }
+
+  /* 버튼 그라데이션 */
+  .btn-gradient {
+    @apply text-white font-medium;
+    background: linear-gradient(135deg, hsl(var(--coral)) 0%, hsl(var(--salmon)) 100%);
+  }
+
+  .btn-gradient:hover {
+    background: linear-gradient(135deg, hsl(14 90% 52%) 0%, hsl(8 85% 60%) 100%);
+  }
+
+  /* 네비게이션 활성 상태 */
+  .nav-active {
+    @apply text-primary bg-primary/10 rounded-xl;
+  }
+
+  /* 태그/배지 스타일 */
+  .tag-warm {
+    @apply px-3 py-1 rounded-full text-sm font-medium;
+    background: hsl(var(--coral-light));
+    color: hsl(var(--coral));
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* 식사 타입 유틸리티 클래스 */
+  .meal-breakfast {
+    --meal-color: var(--meal-breakfast);
+    --meal-bg: var(--meal-breakfast-bg);
+    --meal-border: var(--meal-breakfast-border);
+  }
+
+  .meal-lunch {
+    --meal-color: var(--meal-lunch);
+    --meal-bg: var(--meal-lunch-bg);
+    --meal-border: var(--meal-lunch-border);
+  }
+
+  .meal-dinner {
+    --meal-color: var(--meal-dinner);
+    --meal-bg: var(--meal-dinner-bg);
+    --meal-border: var(--meal-dinner-border);
+  }
+
+  .meal-snack {
+    --meal-color: var(--meal-snack);
+    --meal-bg: var(--meal-snack-bg);
+    --meal-border: var(--meal-snack-border);
+  }
+
+  /* 애니메이션 유틸리티 */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* 스크롤바 스타일 */
+  .scrollbar-warm {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  .scrollbar-warm::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-warm::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-warm::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  .scrollbar-warm::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
   }
 }

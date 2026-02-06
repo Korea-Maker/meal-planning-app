@@ -12,17 +12,18 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RouteProp } from '@react-navigation/native';
-import type { RecipeStackParamList } from '../../navigation/types';
+import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import type { RecipeDifficulty, RecipeCategory, CreateIngredientRequest, CreateInstructionRequest } from '@meal-planning/shared-types';
 import { useCreateRecipe, useUpdateRecipe, useRecipe } from '../../hooks';
-import { showImagePickerOptions, ImageResult } from '../../utils/imagePicker';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 
-type NavigationProp = NativeStackNavigationProp<RecipeStackParamList, 'RecipeForm'>;
-type RouteProps = RouteProp<RecipeStackParamList, 'RecipeForm'>;
+interface RecipeFormScreenProps {
+  route: {
+    params?: {
+      recipeId?: string;
+    };
+  };
+}
 
 const DIFFICULTY_OPTIONS: { value: RecipeDifficulty; label: string }[] = [
   { value: 'easy', label: '쉬움' },
@@ -49,10 +50,9 @@ interface InstructionInput extends CreateInstructionRequest {
   tempId: string;
 }
 
-export default function RecipeFormScreen() {
-  const navigation = useNavigation<NavigationProp>();
-  const route = useRoute<RouteProps>();
-  const { recipeId } = route.params;
+export default function RecipeFormScreen({ route }: RecipeFormScreenProps) {
+  const navigation = useSimpleNavigation();
+  const recipeId = route.params?.recipeId;
 
   const isEditMode = Boolean(recipeId);
 
@@ -67,7 +67,7 @@ export default function RecipeFormScreen() {
   const [cookTime, setCookTime] = useState('');
   const [difficulty, setDifficulty] = useState<RecipeDifficulty>('medium');
   const [selectedCategories, setSelectedCategories] = useState<RecipeCategory[]>([]);
-  const [imageResult, setImageResult] = useState<ImageResult | null>(null);
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const [ingredients, setIngredients] = useState<IngredientInput[]>([
     { tempId: '1', name: '', amount: 0, unit: '' },
   ]);
@@ -114,10 +114,8 @@ export default function RecipeFormScreen() {
   }, [existingRecipe]);
 
   const handleImagePick = async () => {
-    const result = await showImagePickerOptions();
-    if (result) {
-      setImageResult(result);
-    }
+    // Image picker functionality disabled for now
+    Alert.alert('알림', '이미지 선택 기능은 준비 중입니다.');
   };
 
   const toggleCategory = (category: RecipeCategory) => {
@@ -222,7 +220,7 @@ export default function RecipeFormScreen() {
     const recipeData = {
       title,
       description: description.trim() || undefined,
-      image_url: imageResult?.uri,
+      image_url: imageUri || undefined,
       prep_time_minutes: prepTime ? parseInt(prepTime) : undefined,
       cook_time_minutes: cookTime ? parseInt(cookTime) : undefined,
       servings: parseInt(servings),
@@ -254,6 +252,15 @@ export default function RecipeFormScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
+      {/* Back Button Header */}
+      <View style={styles.backHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>← 뒤로</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{isEditMode ? '레시피 수정' : '레시피 추가'}</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -264,8 +271,8 @@ export default function RecipeFormScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>사진</Text>
           <TouchableOpacity style={styles.imageContainer} onPress={handleImagePick}>
-            {imageResult ? (
-              <Image source={{ uri: imageResult.uri }} style={styles.recipeImage} />
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.recipeImage} />
             ) : (
               <View style={styles.imagePlaceholder}>
                 <Text style={styles.imagePlaceholderIcon}>📷</Text>
@@ -500,6 +507,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  backHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    ...shadow.sm,
+  },
+  backButton: {
+    paddingVertical: spacing.sm,
+  },
+  backButtonText: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  headerTitle: {
+    flex: 1,
+    ...typography.h4,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: 60,
   },
   scrollView: {
     flex: 1,

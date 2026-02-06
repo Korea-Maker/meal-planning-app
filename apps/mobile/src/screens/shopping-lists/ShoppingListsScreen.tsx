@@ -126,7 +126,6 @@ export default function ShoppingListsScreen() {
         style={styles.fab}
         onPress={() => {
           // TODO: Implement manual list creation
-          console.log('Create new shopping list');
         }}
       >
         <Text style={styles.fabText}>+</Text>

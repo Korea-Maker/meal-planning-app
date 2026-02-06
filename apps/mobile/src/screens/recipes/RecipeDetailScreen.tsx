@@ -9,8 +9,8 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import type { RecipeStackScreenProps } from '../../navigation/types';
-import { colors, typography, spacing, borderRadius } from '../../styles';
+import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
+import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 import {
   useRecipe,
   useRecipeStats,
@@ -22,11 +22,18 @@ import {
   useDeleteRating,
 } from '../../hooks';
 
-type Props = RecipeStackScreenProps<'RecipeDetail'>;
+interface RecipeDetailScreenProps {
+  route: {
+    params: {
+      recipeId: string;
+    };
+  };
+}
 
 type TabType = 'ingredients' | 'instructions' | 'reviews';
 
-export default function RecipeDetailScreen({ route }: Props) {
+export default function RecipeDetailScreen({ route }: RecipeDetailScreenProps) {
+  const navigation = useSimpleNavigation();
   const { recipeId } = route.params;
   const [activeTab, setActiveTab] = useState<TabType>('ingredients');
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
@@ -127,7 +134,7 @@ export default function RecipeDetailScreen({ route }: Props) {
     );
   }
 
-  const difficultyMap = {
+  const difficultyMap: Record<string, string> = {
     easy: '쉬움',
     medium: '보통',
     hard: '어려움',
@@ -136,17 +143,25 @@ export default function RecipeDetailScreen({ route }: Props) {
   const totalTime = (recipe.prep_time_minutes || 0) + (recipe.cook_time_minutes || 0);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Image */}
-      {recipe.image_url ? (
-        <View style={styles.imageContainer}>
-          <Text style={styles.imagePlaceholderText}>🍳</Text>
-        </View>
-      ) : (
-        <View style={styles.imagePlaceholder}>
-          <Text style={styles.imagePlaceholderText}>🍳</Text>
-        </View>
-      )}
+    <View style={styles.container}>
+      {/* Back Button Header */}
+      <View style={styles.backHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>← 뒤로</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* Image */}
+        {recipe.image_url ? (
+          <View style={styles.imageContainer}>
+            <Text style={styles.imagePlaceholderText}>🍳</Text>
+          </View>
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <Text style={styles.imagePlaceholderText}>🍳</Text>
+          </View>
+        )}
 
       {/* Content */}
       <View style={styles.content}>
@@ -179,7 +194,7 @@ export default function RecipeDetailScreen({ route }: Props) {
           </View>
           <View style={styles.metaItem}>
             <Text style={styles.metaValue}>
-              📊 {difficultyMap[recipe.difficulty]}
+              📊 {difficultyMap[recipe.difficulty] || recipe.difficulty}
             </Text>
             <Text style={styles.metaLabel}>난이도</Text>
           </View>
@@ -406,6 +421,7 @@ export default function RecipeDetailScreen({ route }: Props) {
         )}
       </View>
     </ScrollView>
+    </View>
   );
 }
 
@@ -426,6 +442,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  backHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    ...shadow.sm,
+  },
+  backButton: {
+    paddingVertical: spacing.sm,
+  },
+  backButtonText: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  scrollContainer: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,

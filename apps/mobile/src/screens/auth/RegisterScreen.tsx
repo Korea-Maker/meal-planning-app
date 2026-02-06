@@ -11,16 +11,14 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { AuthStackParamList } from '../../navigation/types';
 import { useAuth } from '../../contexts/AuthContext';
 import { colors, typography, spacing, borderRadius } from '../../styles';
 
-type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
+interface RegisterScreenProps {
+  onSwitchToLogin: () => void;
+}
 
-export default function RegisterScreen() {
-  const navigation = useNavigation<NavigationProp>();
+export default function RegisterScreen({ onSwitchToLogin }: RegisterScreenProps) {
   const { register } = useAuth();
 
   const [name, setName] = useState('');
@@ -136,7 +134,7 @@ export default function RegisterScreen() {
 
           <TouchableOpacity
             style={styles.linkButton}
-            onPress={() => navigation.navigate('Login')}
+            onPress={onSwitchToLogin}
           >
             <Text style={styles.linkText}>
               이미 계정이 있으신가요? <Text style={styles.linkTextBold}>로그인</Text>

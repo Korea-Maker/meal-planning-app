@@ -55,11 +55,9 @@ class RecipeRepository(BaseRepository[Recipe]):
         stmt = select(Recipe).where(Recipe.user_id == user_id)
 
         if query:
-            stmt = stmt.where(
-                Recipe.search_vector.bool_op("@@")(
-                    func.plainto_tsquery("korean", query)
-                )
-            )
+            # Use ILIKE for better Korean text search support
+            search_pattern = f"%{query}%"
+            stmt = stmt.where(Recipe.title.ilike(search_pattern))
 
         if categories:
             stmt = stmt.where(Recipe.categories.overlap(categories))

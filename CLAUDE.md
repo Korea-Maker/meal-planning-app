@@ -8,7 +8,7 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Project Status
 
-**현재 단계:** 개발 환경 구축 완료 (Phase 1-A)
+**현재 단계:** MVP 완료 (Phase 1 Complete) ✅
 
 ## Tech Stack (확정)
 
@@ -19,7 +19,7 @@ This file provides guidance to Claude Code when working with this repository.
 | Database | PostgreSQL 16 (Alembic 마이그레이션) |
 | Cache | Redis 7 |
 | Auth | JWT + OAuth 2.0 (Google, Apple 예정) |
-| AI | OpenAI GPT-5 Mini (URL 추출 예정) |
+| AI | OpenAI GPT-4o-mini (URL 추출 구현 완료) |
 | 외부 레시피 | 식품안전나라 (한국), Spoonacular, TheMealDB |
 
 ## Project Structure (Monorepo)
@@ -126,20 +126,20 @@ cd apps/api && alembic upgrade head
 - `PATCH /api/v1/shopping-lists/{id}/items/{item_id}` - 항목 수정
 - `POST /api/v1/shopping-lists/{id}/items/{item_id}/check` - 체크 토글
 
-## MVP Features (Phase 1)
+## MVP Features (Phase 1) - 완료 ✅
 
 1. [x] 프로젝트 scaffolding
 2. [x] 데이터베이스 스키마 설계
-3. [ ] 레시피 수동 생성 (UI 완성 필요)
-4. [ ] 레시피 URL 추출 (GPT 연동 필요)
-5. [x] 레시피 검색 (API 완료)
-6. [x] 레시피 카테고리 분류 (API 완료)
-7. [ ] 주간 식사 계획 생성 (UI 완성 필요)
-8. [ ] 식사 계획 수정 (UI 완성 필요)
-9. [x] 장보기 목록 자동 생성 (API 완료)
-10. [ ] 장보기 항목 체크 (UI 완성 필요)
-11. [x] 사용자 프로필 설정 (완료)
-12. [x] 인분 수 조절 (API 완료)
+3. [x] 레시피 수동 생성 (RecipeForm 컴포넌트)
+4. [x] 레시피 URL 추출 (GPT-4o-mini + Schema.org)
+5. [x] 레시피 검색 (Full-text GIN 인덱스)
+6. [x] 레시피 카테고리 분류 (8개 카테고리)
+7. [x] 주간 식사 계획 생성 (7일 캘린더 + @dnd-kit)
+8. [x] 식사 계획 수정 (슬롯 추가/삭제/수정)
+9. [x] 장보기 목록 자동 생성 (재료 집계)
+10. [x] 장보기 항목 체크 (체크박스 + 진행률)
+11. [x] 사용자 프로필 설정 (식이제한, 알러지)
+12. [x] 인분 수 조절 (재료량 재계산)
 
 ## External Recipe Sources
 
@@ -166,15 +166,19 @@ cd apps/api && alembic upgrade head
 - **API 키 발급**: https://data.mafra.go.kr (회원가입 시 자동 발급)
 - `.env`에 `MAFRA_API_KEY` 설정
 
-## Next Steps
+## Phase 2 Next Steps
 
+### 환경 설정 (필수)
 1. [ ] PostgreSQL, Redis 설치 및 환경 변수 설정
-2. [ ] Alembic 마이그레이션 실행
-3. [ ] 레시피 생성/수정 폼 UI 구현
-4. [ ] 식사 계획 드래그앤드롭 UI 구현
-5. [ ] 장보기 목록 체크 UI 구현
-6. [ ] URL 레시피 추출 (OpenAI 연동)
-7. [ ] OAuth 로그인 (Google, Apple)
+2. [ ] Python 의존성 설치 (`pip install -r requirements.txt`)
+3. [ ] Alembic 마이그레이션 실행
+
+### 기능 확장 (Phase 2)
+4. [ ] OAuth 로그인 (Google, Apple) - 설정 완료, 플로우 구현 필요
+5. [ ] 레시피 즐겨찾기 & 평점 시스템
+6. [ ] 번역 기능 복구 (DeepL 또는 대체 API)
+7. [ ] 가족 공유 기능
+8. [ ] Frontend Unit 테스트 추가
 
 ## Documentation
 

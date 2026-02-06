@@ -8,13 +8,18 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { useRoute } from '@react-navigation/native';
-import type { ShoppingStackScreenProps } from '../../navigation/types';
+import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import { useShoppingList, useCheckShoppingItem } from '../../hooks';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 import type { ShoppingItem } from '@meal-planning/shared-types';
 
-type RouteProp = ShoppingStackScreenProps<'ShoppingListDetail'>['route'];
+interface ShoppingListDetailScreenProps {
+  route: {
+    params: {
+      listId: string;
+    };
+  };
+}
 
 const CATEGORY_EMOJI: Record<string, string> = {
   produce: '🥬',
@@ -38,8 +43,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: '기타',
 };
 
-export default function ShoppingListDetailScreen() {
-  const route = useRoute<RouteProp>();
+export default function ShoppingListDetailScreen({ route }: ShoppingListDetailScreenProps) {
+  const navigation = useSimpleNavigation();
   const { listId } = route.params;
   const { data: shoppingList, isLoading, error, refetch } = useShoppingList(listId);
   const checkItemMutation = useCheckShoppingItem(listId);
@@ -48,7 +53,7 @@ export default function ShoppingListDetailScreen() {
     try {
       await checkItemMutation.mutateAsync(itemId);
     } catch (error) {
-      console.error('Failed to toggle item:', error);
+      if (__DEV__) console.error('Failed to toggle item:', error);
     }
   };
 
@@ -134,6 +139,13 @@ export default function ShoppingListDetailScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Back Button Header */}
+      <View style={styles.backHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>← 뒤로</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Progress Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
@@ -200,6 +212,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  backHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    ...shadow.sm,
+  },
+  backButton: {
+    paddingVertical: spacing.sm,
+  },
+  backButtonText: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
+  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -209,7 +239,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: colors.card,
     padding: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.md,
     ...shadow.sm,
   },
   headerTop: {

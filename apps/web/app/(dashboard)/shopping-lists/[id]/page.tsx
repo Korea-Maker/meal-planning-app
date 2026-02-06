@@ -5,16 +5,15 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
-  Check,
+  ChevronDown,
   Loader2,
   Trash2,
   Eye,
   EyeOff,
-  CheckCheck,
-  RotateCcw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -24,7 +23,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { ShoppingItemRow } from '@/components/shopping-lists/shopping-item'
 import { AddItemForm } from '@/components/shopping-lists/add-item-form'
 import {
   useShoppingList,
@@ -47,6 +45,17 @@ const CATEGORY_LABELS: Record<ShoppingCategory, string> = {
   other: '기타',
 }
 
+const CATEGORY_ICONS: Record<ShoppingCategory, string> = {
+  produce: '🥬',
+  meat: '🥩',
+  dairy: '🥛',
+  bakery: '🍞',
+  frozen: '🧊',
+  pantry: '🌾',
+  beverages: '🥤',
+  other: '📦',
+}
+
 const CATEGORY_ORDER: ShoppingCategory[] = [
   'produce',
   'meat',
@@ -57,6 +66,111 @@ const CATEGORY_ORDER: ShoppingCategory[] = [
   'beverages',
   'other',
 ]
+
+interface CategorySectionProps {
+  category: ShoppingCategory
+  items: ShoppingItem[]
+  onCheck: (id: string) => void
+  onDelete: (id: string) => void
+}
+
+function CategorySection({ category, items, onCheck, onDelete }: CategorySectionProps) {
+  const [expanded, setExpanded] = useState(true)
+  const icon = CATEGORY_ICONS[category]
+  const label = CATEGORY_LABELS[category]
+  const checkedCount = items.filter((i) => i.is_checked).length
+  const progress = Math.round((checkedCount / items.length) * 100)
+
+  return (
+    <div className="bg-card rounded-2xl border-2 border-border overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{icon}</span>
+          <div className="text-left">
+            <h3 className="font-semibold text-card-foreground">{label}</h3>
+            <p className="text-xs text-muted-foreground">
+              {checkedCount} / {items.length} 완료
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <ChevronDown
+            className={`h-5 w-5 text-muted-foreground transition-transform ${
+              expanded ? 'rotate-180' : ''
+            }`}
+          />
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-4 space-y-1">
+          {items.map((item) => (
+            <ShoppingItemRow
+              key={item.id}
+              item={item}
+              onCheck={onCheck}
+              onDelete={onDelete}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface ShoppingItemRowProps {
+  item: ShoppingItem
+  onCheck: (id: string) => void
+  onDelete: (id: string) => void
+}
+
+function ShoppingItemRow({ item, onCheck, onDelete }: ShoppingItemRowProps) {
+  return (
+    <div
+      className={`group flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-all ${
+        item.is_checked ? 'opacity-60' : ''
+      }`}
+    >
+      <Checkbox
+        checked={item.is_checked}
+        onCheckedChange={() => onCheck(item.id)}
+        className="h-5 w-5 rounded-md data-[state=checked]:bg-primary"
+      />
+
+      <div className="flex-1 min-w-0">
+        <p
+          className={`font-medium transition-all ${
+            item.is_checked ? 'line-through text-muted-foreground' : 'text-card-foreground'
+          }`}
+        >
+          {item.ingredient_name}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {item.amount} {item.unit}
+        </p>
+      </div>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => onDelete(item.id)}
+        className="h-8 w-8 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  )
+}
 
 interface Props {
   params: Promise<{ id: string }>
@@ -182,6 +296,7 @@ export default function ShoppingListDetailPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
@@ -189,12 +304,7 @@ export default function ShoppingListDetailPage({ params }: Props) {
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{shoppingList.name}</h1>
-            <p className="text-gray-600">
-              {stats.checked}/{stats.total} 완료 ({stats.percentage}%)
-            </p>
-          </div>
+          <h1 className="text-3xl font-bold">{shoppingList.name}</h1>
         </div>
 
         <div className="flex items-center gap-2">
@@ -248,51 +358,46 @@ export default function ShoppingListDetailPage({ params }: Props) {
         </div>
       </div>
 
-      <div className="w-full bg-gray-200 rounded-full h-2">
-        <div
-          className="bg-green-500 h-2 rounded-full transition-all duration-300"
-          style={{ width: `${stats.percentage}%` }}
-        />
+      {/* Progress Card */}
+      <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-accent/5 rounded-2xl p-6 border border-primary/20">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-card-foreground">장보기 진행률</h2>
+            <p className="text-muted-foreground">
+              {stats.checked} / {stats.total} 항목 완료
+            </p>
+          </div>
+          <span className="text-4xl font-bold text-primary">{stats.percentage}%</span>
+        </div>
+        <Progress value={stats.percentage} className="h-3" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Category Sections */}
+      <div className="space-y-4">
         {CATEGORY_ORDER.map((category) => {
           const items = itemsByCategory.get(category)
           if (!items || items.length === 0) return null
 
           return (
-            <Card key={category}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  {CATEGORY_LABELS[category]}
-                  <span className="text-sm font-normal text-gray-500">
-                    ({items.filter((i) => i.is_checked).length}/{items.length})
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                {items.map((item) => (
-                  <ShoppingItemRow
-                    key={item.id}
-                    item={item}
-                    onCheck={handleCheckItem}
-                    onDelete={handleDeleteItem}
-                  />
-                ))}
-              </CardContent>
-            </Card>
+            <CategorySection
+              key={category}
+              category={category}
+              items={items}
+              onCheck={handleCheckItem}
+              onDelete={handleDeleteItem}
+            />
           )
         })}
       </div>
 
+      {/* Empty State */}
       {shoppingList.items.length === 0 && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-gray-500 mb-4">아직 항목이 없습니다</p>
-          </CardContent>
-        </Card>
+        <div className="bg-card rounded-2xl border-2 border-dashed border-border p-12 text-center">
+          <p className="text-muted-foreground mb-4">아직 항목이 없습니다</p>
+        </div>
       )}
 
+      {/* Add Item Form */}
       <AddItemForm onSubmit={handleAddItem} isPending={addItem.isPending} />
     </div>
   )

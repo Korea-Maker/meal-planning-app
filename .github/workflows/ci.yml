@@ -165,7 +165,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/meal_planning_test
           REDIS_URL: redis://localhost:6379/0
-          SECRET_KEY: test-secret-key-for-ci
+          JWT_SECRET_KEY: test-secret-key-for-ci
           ENVIRONMENT: testing
         run: uv run pytest --cov=src --cov-report=xml --cov-report=html --cov-report=term -v
 
@@ -235,6 +235,10 @@ jobs:
 
       - name: FastAPI 임포트 확인 (Backend)
         working-directory: ./apps/api
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+          REDIS_URL: redis://localhost:6379/0
+          JWT_SECRET_KEY: test-secret-key-for-ci
         run: uv run python -c "from src.main import app; print('✓ FastAPI app import successful')"
 
       - name: 빌드 아티팩트 업로드

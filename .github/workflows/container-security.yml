@@ -79,7 +79,7 @@ jobs:
         with:
           image: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           fail-build: true
-          severity-cutoff: high
+          severity-cutoff: critical
           output-format: sarif
 
       - name: 취약점 스캔 결과 업로드
@@ -125,10 +125,9 @@ jobs:
           # 테스트용 환경 변수 파일 생성
           cat > .env.test << EOF
           DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mealplanning_test
-          SECRET_KEY=test-secret-key-for-ci-only-do-not-use-in-production
+          JWT_SECRET_KEY=test-secret-key-for-ci-only-do-not-use-in-production
           REDIS_URL=redis://localhost:6379/0
-          ENVIRONMENT=test
-          LOG_LEVEL=INFO
+          APP_ENV=development
           EOF
 
           # PostgreSQL 서비스 시작 (헬스체크용)

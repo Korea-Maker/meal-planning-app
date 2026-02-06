@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # 보안: 비-root 사용자 생성
 RUN groupadd -r appgroup && useradd -r -g appgroup -d /app -s /sbin/nologin appuser
@@ -7,7 +7,8 @@ WORKDIR /app
 
 # 의존성 설치 (root로 실행)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # 애플리케이션 복사 (소유권 변경)
 COPY --chown=appuser:appgroup . .

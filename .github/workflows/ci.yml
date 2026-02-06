@@ -45,7 +45,7 @@ jobs:
 
       - name: 의존성 설치 (Backend)
         working-directory: ./apps/api
-        run: uv sync
+        run: uv sync --extra dev
 
       - name: ESLint (Frontend)
         run: pnpm --filter web lint
@@ -158,7 +158,7 @@ jobs:
 
       - name: 의존성 설치
         working-directory: ./apps/api
-        run: uv sync
+        run: uv sync --extra dev
 
       - name: pytest 실행
         working-directory: ./apps/api
@@ -219,7 +219,7 @@ jobs:
 
       - name: 의존성 설치 (Backend)
         working-directory: ./apps/api
-        run: uv sync
+        run: uv sync --extra dev
 
       - name: Turborepo 원격 캐시 설정
         run: |

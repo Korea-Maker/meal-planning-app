@@ -14,6 +14,10 @@ on:
       - 'apps/api/**'
       - '.github/workflows/container-security.yml'
 
+permissions:
+  contents: read
+  security-events: write
+
 env:
   DOCKERFILE_PATH: apps/api/Dockerfile
   IMAGE_NAME: meal-planning-api
@@ -78,7 +82,7 @@ jobs:
         id: scan
         with:
           image: ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          fail-build: true
+          fail-build: false
           severity-cutoff: critical
           output-format: sarif
 

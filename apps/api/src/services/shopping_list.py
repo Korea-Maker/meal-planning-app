@@ -4,8 +4,8 @@ from datetime import timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import MealPlanNotFoundError, NotFoundError, ShoppingListNotFoundError
-from src.models.shopping_list import ShoppingList
 from src.models.shopping_item import ShoppingItem
+from src.models.shopping_list import ShoppingList
 from src.repositories.meal_plan import MealPlanRepository
 from src.repositories.shopping_list import ShoppingListRepository
 from src.schemas.common import PaginationMeta
@@ -32,11 +32,13 @@ class ShoppingListService:
             if not meal_plan or meal_plan.user_id != user_id:
                 raise MealPlanNotFoundError(data.meal_plan_id)
 
-        shopping_list = await self.shopping_list_repo.create({
-            "user_id": user_id,
-            "name": data.name,
-            "meal_plan_id": data.meal_plan_id,
-        })
+        shopping_list = await self.shopping_list_repo.create(
+            {
+                "user_id": user_id,
+                "name": data.name,
+                "meal_plan_id": data.meal_plan_id,
+            }
+        )
 
         return await self.shopping_list_repo.get_by_id_with_items(shopping_list.id)  # type: ignore
 
@@ -59,9 +61,7 @@ class ShoppingListService:
         limit: int = 20,
     ) -> tuple[list[ShoppingList], PaginationMeta]:
         skip = (page - 1) * limit
-        shopping_lists = await self.shopping_list_repo.get_user_shopping_lists(
-            user_id, skip, limit
-        )
+        shopping_lists = await self.shopping_list_repo.get_user_shopping_lists(user_id, skip, limit)
         total = await self.shopping_list_repo.count_user_shopping_lists(user_id)
 
         meta = PaginationMeta(
@@ -90,11 +90,13 @@ class ShoppingListService:
             await self.shopping_list_repo.delete(existing)
 
         list_name = name or f"{meal_plan.week_start_date} 주간 장보기 목록"
-        shopping_list = await self.shopping_list_repo.create({
-            "user_id": user_id,
-            "name": list_name,
-            "meal_plan_id": meal_plan_id,
-        })
+        shopping_list = await self.shopping_list_repo.create(
+            {
+                "user_id": user_id,
+                "name": list_name,
+                "meal_plan_id": meal_plan_id,
+            }
+        )
 
         start_date = meal_plan.week_start_date
         end_date = start_date + timedelta(days=6)
@@ -118,13 +120,15 @@ class ShoppingListService:
 
         items_data = []
         for (name_lower, _), data in aggregated.items():
-            items_data.append({
-                "ingredient_name": name_lower.title(),
-                "amount": round(data["amount"], 2),
-                "unit": data["unit"],
-                "category": data["category"],
-                "is_checked": False,
-            })
+            items_data.append(
+                {
+                    "ingredient_name": name_lower.title(),
+                    "amount": round(data["amount"], 2),
+                    "unit": data["unit"],
+                    "category": data["category"],
+                    "is_checked": False,
+                }
+            )
 
         if items_data:
             await self.shopping_list_repo.add_items(shopping_list.id, items_data)
@@ -134,7 +138,17 @@ class ShoppingListService:
     def _categorize_ingredient(self, name: str) -> str:
         name_lower = name.lower()
 
-        produce_keywords = ["채소", "야채", "과일", "상추", "당근", "양파", "마늘", "토마토", "감자"]
+        produce_keywords = [
+            "채소",
+            "야채",
+            "과일",
+            "상추",
+            "당근",
+            "양파",
+            "마늘",
+            "토마토",
+            "감자",
+        ]
         meat_keywords = ["고기", "소고기", "돼지", "닭", "beef", "pork", "chicken"]
         dairy_keywords = ["우유", "치즈", "버터", "요구르트", "milk", "cheese"]
         bakery_keywords = ["빵", "bread", "베이커리"]

@@ -1,19 +1,20 @@
 """Unit tests for services."""
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.core.exceptions import (
     AuthenticationError,
     EmailAlreadyExistsError,
     RecipeNotFoundError,
 )
-from src.models.recipe import Recipe
 from src.models.ingredient import Ingredient
 from src.models.instruction import Instruction
+from src.models.recipe import Recipe
 from src.models.user import User
 from src.schemas.auth import LoginRequest, RegisterRequest
-from src.schemas.recipe import RecipeCreate, RecipeSearchParams, IngredientCreate, InstructionCreate
+from src.schemas.recipe import IngredientCreate, InstructionCreate, RecipeCreate, RecipeSearchParams
 from src.services.auth import AuthService
 from src.services.recipe import RecipeService
 
@@ -175,9 +176,7 @@ class TestRecipeService:
 
     async def test_create_recipe_success(self, recipe_service, sample_recipe):
         """Test successful recipe creation."""
-        recipe_service.recipe_repo.create_with_details = AsyncMock(
-            return_value=sample_recipe
-        )
+        recipe_service.recipe_repo.create_with_details = AsyncMock(return_value=sample_recipe)
 
         data = RecipeCreate(
             title="테스트 레시피",
@@ -201,9 +200,7 @@ class TestRecipeService:
 
     async def test_get_recipe_success(self, recipe_service, sample_recipe):
         """Test successful recipe retrieval."""
-        recipe_service.recipe_repo.get_by_id_with_details = AsyncMock(
-            return_value=sample_recipe
-        )
+        recipe_service.recipe_repo.get_by_id_with_details = AsyncMock(return_value=sample_recipe)
 
         result = await recipe_service.get_recipe("recipe-123", "user-123")
 
@@ -219,18 +216,14 @@ class TestRecipeService:
 
     async def test_get_recipe_wrong_user(self, recipe_service, sample_recipe):
         """Test recipe access denied for wrong user."""
-        recipe_service.recipe_repo.get_by_id_with_details = AsyncMock(
-            return_value=sample_recipe
-        )
+        recipe_service.recipe_repo.get_by_id_with_details = AsyncMock(return_value=sample_recipe)
 
         with pytest.raises(RecipeNotFoundError):
             await recipe_service.get_recipe("recipe-123", "different-user")
 
     async def test_get_user_recipes(self, recipe_service, sample_recipe):
         """Test getting user's recipes with pagination."""
-        recipe_service.recipe_repo.get_user_recipes = AsyncMock(
-            return_value=[sample_recipe]
-        )
+        recipe_service.recipe_repo.get_user_recipes = AsyncMock(return_value=[sample_recipe])
         recipe_service.recipe_repo.count_user_recipes = AsyncMock(return_value=1)
 
         recipes, meta = await recipe_service.get_user_recipes("user-123", page=1, limit=20)
@@ -242,9 +235,7 @@ class TestRecipeService:
 
     async def test_search_recipes(self, recipe_service, sample_recipe):
         """Test recipe search functionality."""
-        recipe_service.recipe_repo.search = AsyncMock(
-            return_value=([sample_recipe], 1)
-        )
+        recipe_service.recipe_repo.search = AsyncMock(return_value=([sample_recipe], 1))
 
         params = RecipeSearchParams(
             query="테스트",
@@ -261,9 +252,7 @@ class TestRecipeService:
 
     async def test_delete_recipe_success(self, recipe_service, sample_recipe):
         """Test successful recipe deletion."""
-        recipe_service.recipe_repo.get_by_id_with_details = AsyncMock(
-            return_value=sample_recipe
-        )
+        recipe_service.recipe_repo.get_by_id_with_details = AsyncMock(return_value=sample_recipe)
         recipe_service.recipe_repo.delete = AsyncMock()
 
         await recipe_service.delete_recipe("recipe-123", "user-123")
@@ -272,9 +261,7 @@ class TestRecipeService:
 
     async def test_adjust_servings(self, recipe_service, sample_recipe):
         """Test adjusting recipe servings."""
-        recipe_service.recipe_repo.get_by_id_with_details = AsyncMock(
-            return_value=sample_recipe
-        )
+        recipe_service.recipe_repo.get_by_id_with_details = AsyncMock(return_value=sample_recipe)
 
         result = await recipe_service.adjust_servings("recipe-123", "user-123", 4)
 
@@ -283,9 +270,7 @@ class TestRecipeService:
 
     async def test_adjust_servings_same_value(self, recipe_service, sample_recipe):
         """Test adjusting servings to same value does nothing."""
-        recipe_service.recipe_repo.get_by_id_with_details = AsyncMock(
-            return_value=sample_recipe
-        )
+        recipe_service.recipe_repo.get_by_id_with_details = AsyncMock(return_value=sample_recipe)
 
         result = await recipe_service.adjust_servings("recipe-123", "user-123", 2)
 
@@ -308,8 +293,8 @@ class TestURLExtractorService:
 
     async def test_validate_url_blocks_localhost(self, mock_redis):
         """Test that localhost URLs are blocked."""
-        from src.services.url_extractor import URLExtractorService
         from src.core.exceptions import ValidationError
+        from src.services.url_extractor import URLExtractorService
 
         service = URLExtractorService(mock_redis)
 
@@ -318,8 +303,8 @@ class TestURLExtractorService:
 
     async def test_validate_url_blocks_private_ip(self, mock_redis):
         """Test that private IP URLs are blocked."""
-        from src.services.url_extractor import URLExtractorService
         from src.core.exceptions import ValidationError
+        from src.services.url_extractor import URLExtractorService
 
         service = URLExtractorService(mock_redis)
 
@@ -414,6 +399,7 @@ class TestSecurityFunctions:
     def test_decode_invalid_token(self):
         """Test decoding invalid token raises error."""
         from fastapi import HTTPException
+
         from src.core.security import decode_token
 
         with pytest.raises(HTTPException) as exc_info:

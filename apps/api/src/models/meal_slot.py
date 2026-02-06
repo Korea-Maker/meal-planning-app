@@ -3,8 +3,8 @@ from datetime import date, datetime
 from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.models.base import UUIDMixin, generate_uuid, utc_now
 from src.core.database import Base
+from src.models.base import UUIDMixin, generate_uuid, utc_now
 
 
 class MealSlot(Base, UUIDMixin):

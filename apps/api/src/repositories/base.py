@@ -14,9 +14,7 @@ class BaseRepository(Generic[ModelType]):
         self.session = session
 
     async def get_by_id(self, id: str) -> ModelType | None:
-        result = await self.session.execute(
-            select(self.model).where(self.model.id == id)
-        )
+        result = await self.session.execute(select(self.model).where(self.model.id == id))
         return result.scalar_one_or_none()
 
     async def get_all(
@@ -24,9 +22,7 @@ class BaseRepository(Generic[ModelType]):
         skip: int = 0,
         limit: int = 100,
     ) -> list[ModelType]:
-        result = await self.session.execute(
-            select(self.model).offset(skip).limit(limit)
-        )
+        result = await self.session.execute(select(self.model).offset(skip).limit(limit))
         return list(result.scalars().all())
 
     async def create(self, obj_in: dict[str, Any]) -> ModelType:
@@ -55,7 +51,5 @@ class BaseRepository(Generic[ModelType]):
     async def count(self) -> int:
         from sqlalchemy import func
 
-        result = await self.session.execute(
-            select(func.count()).select_from(self.model)
-        )
+        result = await self.session.execute(select(func.count()).select_from(self.model))
         return result.scalar_one()

@@ -51,6 +51,7 @@ class RecipeStatsResponse(BaseModel):
 # Extended Recipe Response with interaction data
 class RecipeInteractionResponse(BaseModel):
     """User-specific interaction data for a recipe."""
+
     user_rating: int | None = None
     is_favorite: bool = False
     stats: RecipeStatsResponse = Field(default_factory=RecipeStatsResponse)

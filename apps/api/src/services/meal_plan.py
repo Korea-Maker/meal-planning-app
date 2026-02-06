@@ -3,17 +3,17 @@ from datetime import date, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import MealPlanNotFoundError, MealSlotConflictError, NotFoundError
+from src.core.redis import RedisClient
 from src.models.meal_plan import MealPlan
 from src.models.meal_slot import MealSlot
 from src.repositories.meal_plan import MealPlanRepository
 from src.repositories.recipe import RecipeRepository
 from src.schemas.common import PaginationMeta
-from src.core.redis import RedisClient
 from src.schemas.meal_plan import (
+    ExternalMealSlotCreate,
     MealPlanCreate,
     MealSlotCreate,
     MealSlotUpdate,
-    ExternalMealSlotCreate,
     QuickPlanCreate,
 )
 from src.services.external_recipe import ExternalRecipeService
@@ -39,11 +39,13 @@ class MealPlanService:
         if existing:
             return existing
 
-        meal_plan = await self.meal_plan_repo.create({
-            "user_id": user_id,
-            "week_start_date": week_start,
-            "notes": data.notes,
-        })
+        meal_plan = await self.meal_plan_repo.create(
+            {
+                "user_id": user_id,
+                "week_start_date": week_start,
+                "notes": data.notes,
+            }
+        )
 
         return await self.meal_plan_repo.get_by_id_with_slots(meal_plan.id)  # type: ignore
 
@@ -92,7 +94,7 @@ class MealPlanService:
         user_id: str,
         data: MealSlotCreate,
     ) -> MealSlot:
-        meal_plan = await self.get_meal_plan(meal_plan_id, user_id)
+        await self.get_meal_plan(meal_plan_id, user_id)
 
         recipe = await self.recipe_repo.get_by_id(data.recipe_id)
         if not recipe or recipe.user_id != user_id:
@@ -234,11 +236,13 @@ class MealPlanService:
         if existing:
             meal_plan_id = existing.id
         else:
-            meal_plan = await self.meal_plan_repo.create({
-                "user_id": user_id,
-                "week_start_date": week_start,
-                "notes": data.notes,
-            })
+            meal_plan = await self.meal_plan_repo.create(
+                {
+                    "user_id": user_id,
+                    "week_start_date": week_start,
+                    "notes": data.notes,
+                }
+            )
             meal_plan_id = meal_plan.id
 
         external_service = ExternalRecipeService(self.session, redis)

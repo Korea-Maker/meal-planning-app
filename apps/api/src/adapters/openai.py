@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Any
 
-from openai import AsyncOpenAI, APIError, RateLimitError, APIConnectionError
+from openai import APIConnectionError, APIError, AsyncOpenAI, RateLimitError
 
 from src.core.config import settings
 
@@ -147,8 +147,14 @@ HTML:
             raise ValueError("At least one instruction is required")
 
         valid_categories = {
-            "breakfast", "lunch", "dinner", "snack",
-            "dessert", "appetizer", "side", "drink"
+            "breakfast",
+            "lunch",
+            "dinner",
+            "snack",
+            "dessert",
+            "appetizer",
+            "side",
+            "drink",
         }
         categories = data.get("categories", [])
         normalized_categories = [c for c in categories if c in valid_categories]
@@ -160,25 +166,31 @@ HTML:
 
         normalized_ingredients = []
         for idx, ing in enumerate(ingredients):
-            normalized_ingredients.append({
-                "name": str(ing.get("name", "")),
-                "amount": float(ing.get("amount", 1)),
-                "unit": str(ing.get("unit", "개")),
-                "notes": ing.get("notes"),
-                "order_index": ing.get("order_index", idx),
-            })
+            normalized_ingredients.append(
+                {
+                    "name": str(ing.get("name", "")),
+                    "amount": float(ing.get("amount", 1)),
+                    "unit": str(ing.get("unit", "개")),
+                    "notes": ing.get("notes"),
+                    "order_index": ing.get("order_index", idx),
+                }
+            )
 
         normalized_instructions = []
         for idx, inst in enumerate(instructions, start=1):
-            normalized_instructions.append({
-                "step_number": inst.get("step_number", idx),
-                "description": str(inst.get("description", "")),
-                "image_url": inst.get("image_url"),
-            })
+            normalized_instructions.append(
+                {
+                    "step_number": inst.get("step_number", idx),
+                    "description": str(inst.get("description", "")),
+                    "image_url": inst.get("image_url"),
+                }
+            )
 
         return {
             "title": str(title)[:200],
-            "description": str(data.get("description", ""))[:2000] if data.get("description") else None,
+            "description": str(data.get("description", ""))[:2000]
+            if data.get("description")
+            else None,
             "image_url": data.get("image_url"),
             "prep_time_minutes": self._parse_int(data.get("prep_time_minutes")),
             "cook_time_minutes": self._parse_int(data.get("cook_time_minutes")),

@@ -20,7 +20,11 @@ from src.services.shopping_list import ShoppingListService
 router = APIRouter()
 
 
-@router.post("", response_model=ApiResponse[ShoppingListWithItemsResponse], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ApiResponse[ShoppingListWithItemsResponse],
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_shopping_list(
     data: ShoppingListCreate,
     user_id: str = Depends(get_current_user_id),
@@ -52,7 +56,11 @@ async def list_shopping_lists(
     )
 
 
-@router.post("/generate", response_model=ApiResponse[ShoppingListWithItemsResponse], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/generate",
+    response_model=ApiResponse[ShoppingListWithItemsResponse],
+    status_code=status.HTTP_201_CREATED,
+)
 async def generate_from_meal_plan(
     data: GenerateShoppingListRequest,
     user_id: str = Depends(get_current_user_id),

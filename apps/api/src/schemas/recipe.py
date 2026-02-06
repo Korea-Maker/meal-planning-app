@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field, HttpUrl
 from src.schemas.ingredient import IngredientCreate, IngredientResponse
 from src.schemas.instruction import InstructionCreate, InstructionResponse
 
-
 RecipeDifficulty = Literal["easy", "medium", "hard"]
 RecipeCategory = Literal[
     "breakfast", "lunch", "dinner", "snack", "dessert", "appetizer", "side", "drink"
@@ -95,7 +94,9 @@ class URLExtractionResponse(BaseModel):
 
 
 # External Recipe Schemas
-ExternalRecipeSource = Literal["spoonacular", "themealdb", "foodsafetykorea", "mafra", "korean_seed"]
+ExternalRecipeSource = Literal[
+    "spoonacular", "themealdb", "foodsafetykorea", "mafra", "korean_seed"
+]
 
 
 class ExternalRecipePreview(BaseModel):

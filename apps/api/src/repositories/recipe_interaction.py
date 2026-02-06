@@ -5,7 +5,6 @@ from sqlalchemy.orm import selectinload
 from src.models.recipe import Recipe
 from src.models.recipe_favorite import RecipeFavorite
 from src.models.recipe_rating import RecipeRating
-from src.models.user import User
 
 
 class RecipeInteractionRepository:
@@ -67,9 +66,9 @@ class RecipeInteractionRepository:
     ) -> tuple[list[RecipeRating], int]:
         # Count total
         count_result = await self.session.execute(
-            select(func.count()).select_from(RecipeRating).where(
-                RecipeRating.recipe_id == recipe_id
-            )
+            select(func.count())
+            .select_from(RecipeRating)
+            .where(RecipeRating.recipe_id == recipe_id)
         )
         total = count_result.scalar_one()
 
@@ -98,14 +97,16 @@ class RecipeInteractionRepository:
 
         # Get favorites count
         favorites_result = await self.session.execute(
-            select(func.count()).select_from(RecipeFavorite).where(
-                RecipeFavorite.recipe_id == recipe_id
-            )
+            select(func.count())
+            .select_from(RecipeFavorite)
+            .where(RecipeFavorite.recipe_id == recipe_id)
         )
         favorites_count = favorites_result.scalar_one()
 
         return {
-            "average_rating": float(rating_row.average_rating) if rating_row.average_rating else None,
+            "average_rating": float(rating_row.average_rating)
+            if rating_row.average_rating
+            else None,
             "total_ratings": rating_row.total_ratings or 0,
             "favorites_count": favorites_count,
         }
@@ -123,7 +124,9 @@ class RecipeInteractionRepository:
 
     async def is_favorite(self, user_id: str, recipe_id: str) -> bool:
         result = await self.session.execute(
-            select(func.count()).select_from(RecipeFavorite).where(
+            select(func.count())
+            .select_from(RecipeFavorite)
+            .where(
                 RecipeFavorite.user_id == user_id,
                 RecipeFavorite.recipe_id == recipe_id,
             )
@@ -155,9 +158,9 @@ class RecipeInteractionRepository:
     ) -> tuple[list[Recipe], int]:
         # Count total favorites
         count_result = await self.session.execute(
-            select(func.count()).select_from(RecipeFavorite).where(
-                RecipeFavorite.user_id == user_id
-            )
+            select(func.count())
+            .select_from(RecipeFavorite)
+            .where(RecipeFavorite.user_id == user_id)
         )
         total = count_result.scalar_one()
 
@@ -244,10 +247,7 @@ class RecipeInteractionRepository:
             .where(RecipeFavorite.recipe_id.in_(recipe_ids))
             .group_by(RecipeFavorite.recipe_id)
         )
-        favorites_counts = {
-            row.recipe_id: row.favorites_count
-            for row in favorites_result.all()
-        }
+        favorites_counts = {row.recipe_id: row.favorites_count for row in favorites_result.all()}
 
         # Combine
         return {

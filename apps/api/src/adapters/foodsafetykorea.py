@@ -133,6 +133,7 @@ class FoodSafetyKoreaAdapter:
             recipes = result.get("results", [])
 
             import random
+
             random.shuffle(recipes)
 
             return recipes[:number]
@@ -188,7 +189,9 @@ class FoodSafetyKoreaAdapter:
         if data.get("RCP_WAY2"):
             tags.append(data.get("RCP_WAY2"))
         if data.get("HASH_TAG"):
-            hash_tags = [t.strip().lstrip("#") for t in data.get("HASH_TAG").split(",") if t.strip()]
+            hash_tags = [
+                t.strip().lstrip("#") for t in data.get("HASH_TAG").split(",") if t.strip()
+            ]
             tags.extend(hash_tags)
 
         calories = self._parse_float(data.get("INFO_ENG"))
@@ -235,13 +238,15 @@ class FoodSafetyKoreaAdapter:
 
         for idx, item in enumerate(items):
             name, amount, unit = self._parse_ingredient_item(item)
-            ingredients.append({
-                "name": name,
-                "amount": amount,
-                "unit": unit,
-                "notes": item,
-                "order_index": idx,
-            })
+            ingredients.append(
+                {
+                    "name": name,
+                    "amount": amount,
+                    "unit": unit,
+                    "notes": item,
+                    "order_index": idx,
+                }
+            )
 
         return ingredients
 
@@ -301,11 +306,13 @@ class FoodSafetyKoreaAdapter:
 
             image_url = data.get(manual_img_key)
 
-            instructions.append({
-                "step_number": step_num,
-                "description": description,
-                "image_url": image_url if image_url else None,
-            })
+            instructions.append(
+                {
+                    "step_number": step_num,
+                    "description": description,
+                    "image_url": image_url if image_url else None,
+                }
+            )
             step_num += 1
 
         return instructions

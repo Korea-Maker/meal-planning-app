@@ -5,16 +5,18 @@ Revises:
 Create Date: 2026-01-28
 
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+from alembic import op
+
 revision: str = "001"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -356,7 +358,14 @@ def upgrade() -> None:
         $$ LANGUAGE plpgsql;
     """)
 
-    for table in ["users", "recipes", "ingredients", "instructions", "meal_plans", "shopping_lists"]:
+    for table in [
+        "users",
+        "recipes",
+        "ingredients",
+        "instructions",
+        "meal_plans",
+        "shopping_lists",
+    ]:
         op.execute(f"""
             CREATE TRIGGER trigger_update_{table}_updated_at
             BEFORE UPDATE ON {table}
@@ -367,7 +376,14 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Drop triggers
-    for table in ["users", "recipes", "ingredients", "instructions", "meal_plans", "shopping_lists"]:
+    for table in [
+        "users",
+        "recipes",
+        "ingredients",
+        "instructions",
+        "meal_plans",
+        "shopping_lists",
+    ]:
         op.execute(f"DROP TRIGGER IF EXISTS trigger_update_{table}_updated_at ON {table}")
 
     op.execute("DROP TRIGGER IF EXISTS trigger_update_recipe_search_vector ON recipes")

@@ -36,9 +36,7 @@ class ShoppingListRepository(BaseRepository[ShoppingList]):
 
     async def count_user_shopping_lists(self, user_id: str) -> int:
         result = await self.session.execute(
-            select(func.count())
-            .select_from(ShoppingList)
-            .where(ShoppingList.user_id == user_id)
+            select(func.count()).select_from(ShoppingList).where(ShoppingList.user_id == user_id)
         )
         return result.scalar_one()
 
@@ -69,9 +67,7 @@ class ShoppingListRepository(BaseRepository[ShoppingList]):
         return items
 
     async def get_item_by_id(self, item_id: str) -> ShoppingItem | None:
-        result = await self.session.execute(
-            select(ShoppingItem).where(ShoppingItem.id == item_id)
-        )
+        result = await self.session.execute(select(ShoppingItem).where(ShoppingItem.id == item_id))
         return result.scalar_one_or_none()
 
     async def update_item(

@@ -31,15 +31,6 @@ from src.schemas.recipe import (
     RecipeUpdate,
     RecipeWithDetailsResponse,
 )
-from src.schemas.shopping_list import (
-    ShoppingItemCreate,
-    ShoppingItemResponse,
-    ShoppingItemUpdate,
-    ShoppingListCreate,
-    ShoppingListResponse,
-    ShoppingListWithItemsResponse,
-)
-from src.schemas.user import UserCreate, UserProfileUpdate, UserResponse
 from src.schemas.recipe_interaction import (
     RecipeFavoriteResponse,
     RecipeInteractionResponse,
@@ -49,6 +40,15 @@ from src.schemas.recipe_interaction import (
     RecipeRatingWithUserResponse,
     RecipeStatsResponse,
 )
+from src.schemas.shopping_list import (
+    ShoppingItemCreate,
+    ShoppingItemResponse,
+    ShoppingItemUpdate,
+    ShoppingListCreate,
+    ShoppingListResponse,
+    ShoppingListWithItemsResponse,
+)
+from src.schemas.user import UserCreate, UserProfileUpdate, UserResponse
 
 __all__ = [
     # Auth

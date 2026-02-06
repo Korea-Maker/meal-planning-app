@@ -9,13 +9,13 @@ from src.core.redis import RedisClient, get_redis
 from src.core.security import get_current_user_id
 from src.schemas.common import ApiResponse, PaginatedResponse
 from src.schemas.meal_plan import (
+    ExternalMealSlotCreate,
     MealPlanCreate,
     MealPlanResponse,
     MealPlanWithSlotsResponse,
     MealSlotCreate,
     MealSlotUpdate,
     MealSlotWithRecipeResponse,
-    ExternalMealSlotCreate,
     QuickPlanCreate,
 )
 from src.services.meal_plan import MealPlanService
@@ -23,7 +23,9 @@ from src.services.meal_plan import MealPlanService
 router = APIRouter()
 
 
-@router.post("", response_model=ApiResponse[MealPlanWithSlotsResponse], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=ApiResponse[MealPlanWithSlotsResponse], status_code=status.HTTP_201_CREATED
+)
 async def create_meal_plan(
     data: MealPlanCreate,
     user_id: str = Depends(get_current_user_id),

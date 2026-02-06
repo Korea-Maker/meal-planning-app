@@ -223,7 +223,9 @@ class TheMealDBAdapter:
             "image_url": meal.get("strMealThumb"),
             "category": meal.get("strCategory"),
             "area": meal.get("strArea"),
-            "summary": meal.get("strInstructions", "")[:200] + "..." if meal.get("strInstructions") else "",
+            "summary": meal.get("strInstructions", "")[:200] + "..."
+            if meal.get("strInstructions")
+            else "",
         }
 
     def _transform_meal_details(self, meal: dict) -> dict[str, Any]:
@@ -271,13 +273,15 @@ class TheMealDBAdapter:
 
             if ingredient and ingredient.strip():
                 amount, unit = self._parse_measure(measure or "")
-                ingredients.append({
-                    "name": ingredient.strip(),
-                    "amount": amount,
-                    "unit": unit,
-                    "notes": measure.strip() if measure else None,
-                    "order_index": i - 1,
-                })
+                ingredients.append(
+                    {
+                        "name": ingredient.strip(),
+                        "amount": amount,
+                        "unit": unit,
+                        "notes": measure.strip() if measure else None,
+                        "order_index": i - 1,
+                    }
+                )
 
         return ingredients
 
@@ -304,12 +308,27 @@ class TheMealDBAdapter:
             except (ValueError, IndexError):
                 amount = 1.0
 
-            unit = measure[match.end():].strip() or "개"
+            unit = measure[match.end() :].strip() or "개"
 
         common_units = [
-            "cup", "cups", "tbsp", "tsp", "tablespoon", "teaspoon",
-            "oz", "lb", "g", "kg", "ml", "l",
-            "piece", "pieces", "slice", "slices", "clove", "cloves",
+            "cup",
+            "cups",
+            "tbsp",
+            "tsp",
+            "tablespoon",
+            "teaspoon",
+            "oz",
+            "lb",
+            "g",
+            "kg",
+            "ml",
+            "l",
+            "piece",
+            "pieces",
+            "slice",
+            "slices",
+            "clove",
+            "cloves",
         ]
 
         for u in common_units:
@@ -333,11 +352,13 @@ class TheMealDBAdapter:
             line = re.sub(r"^(STEP\s*)?\d+[.:\)]\s*", "", line, flags=re.IGNORECASE)
 
             if line:
-                result.append({
-                    "step_number": step_num,
-                    "description": line,
-                    "image_url": None,
-                })
+                result.append(
+                    {
+                        "step_number": step_num,
+                        "description": line,
+                        "image_url": None,
+                    }
+                )
                 step_num += 1
 
         return result

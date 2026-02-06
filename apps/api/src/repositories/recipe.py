@@ -139,17 +139,12 @@ class RecipeRepository(BaseRepository[Recipe]):
     ) -> tuple[list[Recipe], int]:
         """Get all recipes (no user_id filter) for browsing"""
         # Count total
-        count_result = await self.session.execute(
-            select(func.count()).select_from(Recipe)
-        )
+        count_result = await self.session.execute(select(func.count()).select_from(Recipe))
         total = count_result.scalar_one()
 
         # Get paginated results
         result = await self.session.execute(
-            select(Recipe)
-            .order_by(Recipe.created_at.desc())
-            .offset(skip)
-            .limit(limit)
+            select(Recipe).order_by(Recipe.created_at.desc()).offset(skip).limit(limit)
         )
         return list(result.scalars().all()), total
 

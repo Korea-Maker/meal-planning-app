@@ -41,7 +41,9 @@ router = APIRouter()
 # ==================== Static Routes (must come before dynamic routes) ====================
 
 
-@router.post("", response_model=ApiResponse[RecipeWithDetailsResponse], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=ApiResponse[RecipeWithDetailsResponse], status_code=status.HTTP_201_CREATED
+)
 async def create_recipe(
     data: RecipeCreate,
     user_id: str = Depends(get_current_user_id),
@@ -291,7 +293,9 @@ async def get_external_categories(
     return ApiResponse(success=True, data=categories)
 
 
-@router.get("/external/{source}/{external_id}", response_model=ApiResponse[ExternalRecipeDetail | None])
+@router.get(
+    "/external/{source}/{external_id}", response_model=ApiResponse[ExternalRecipeDetail | None]
+)
 async def get_external_recipe(
     source: ExternalRecipeSource,
     external_id: str,
@@ -309,7 +313,9 @@ async def get_external_recipe(
     return ApiResponse(success=True, data=recipe)
 
 
-@router.post("/import/{source}/{external_id}", response_model=ApiResponse[RecipeWithDetailsResponse])
+@router.post(
+    "/import/{source}/{external_id}", response_model=ApiResponse[RecipeWithDetailsResponse]
+)
 async def import_external_recipe(
     source: ExternalRecipeSource,
     external_id: str,
@@ -453,7 +459,11 @@ async def get_my_rating(
     )
 
 
-@router.post("/{recipe_id}/ratings", response_model=ApiResponse[RecipeRatingResponse], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{recipe_id}/ratings",
+    response_model=ApiResponse[RecipeRatingResponse],
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_rating(
     recipe_id: str,
     data: RecipeRatingCreate,

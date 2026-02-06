@@ -12,8 +12,6 @@ import os
 import pytest
 from httpx import AsyncClient
 
-from src.core.security import create_access_token
-
 # Skip all tests in this module if not running against PostgreSQL
 pytestmark = pytest.mark.skipif(
     os.environ.get("TEST_DATABASE_URL") is None,

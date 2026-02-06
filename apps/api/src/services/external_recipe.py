@@ -104,7 +104,11 @@ class ExternalRecipeService:
                     )
                     spoon_results = {"results": spoon_results}
 
-                results["spoonacular"] = spoon_results.get("results", spoon_results) if isinstance(spoon_results, dict) else spoon_results
+                results["spoonacular"] = (
+                    spoon_results.get("results", spoon_results)
+                    if isinstance(spoon_results, dict)
+                    else spoon_results
+                )
             except Exception as e:
                 logger.error(f"Spoonacular discover error: {e}")
 
@@ -123,11 +127,17 @@ class ExternalRecipeService:
         # Translate English sources (Spoonacular, TheMealDB) to Korean
         if self.translation.is_configured:
             if results["spoonacular"]:
-                results["spoonacular"] = await self.translation.translate_recipes_batch(results["spoonacular"])
+                results["spoonacular"] = await self.translation.translate_recipes_batch(
+                    results["spoonacular"]
+                )
             if results["themealdb"]:
-                results["themealdb"] = await self.translation.translate_recipes_batch(results["themealdb"])
+                results["themealdb"] = await self.translation.translate_recipes_batch(
+                    results["themealdb"]
+                )
 
-        results["total"] = len(results["spoonacular"]) + len(results["themealdb"]) + len(results["korean_seed"])
+        results["total"] = (
+            len(results["spoonacular"]) + len(results["themealdb"]) + len(results["korean_seed"])
+        )
 
         await self._cache_result(cache_key, results)
 
@@ -382,40 +392,50 @@ class ExternalRecipeService:
         """Get list of available external sources."""
         sources = []
 
-        sources.append({
-            "id": "korean_seed",
-            "name": "한국 레시피",
-            "description": "한국 전통 및 가정식 레시피 (30종, API 키 불필요)",
-            "available": seed_recipe_service.is_configured,
-        })
+        sources.append(
+            {
+                "id": "korean_seed",
+                "name": "한국 레시피",
+                "description": "한국 전통 및 가정식 레시피 (30종, API 키 불필요)",
+                "available": seed_recipe_service.is_configured,
+            }
+        )
 
-        sources.append({
-            "id": "themealdb",
-            "name": "TheMealDB",
-            "description": "무료 레시피 데이터베이스 (영문)",
-            "available": True,
-        })
+        sources.append(
+            {
+                "id": "themealdb",
+                "name": "TheMealDB",
+                "description": "무료 레시피 데이터베이스 (영문)",
+                "available": True,
+            }
+        )
 
-        sources.append({
-            "id": "spoonacular",
-            "name": "Spoonacular",
-            "description": "종합 레시피 API (영문, 영양 정보 포함)",
-            "available": spoonacular_adapter.is_configured,
-        })
+        sources.append(
+            {
+                "id": "spoonacular",
+                "name": "Spoonacular",
+                "description": "종합 레시피 API (영문, 영양 정보 포함)",
+                "available": spoonacular_adapter.is_configured,
+            }
+        )
 
-        sources.append({
-            "id": "foodsafetykorea",
-            "name": "식품안전나라",
-            "description": "식품의약품안전처 한국 레시피 (영양 정보 포함)",
-            "available": foodsafetykorea_adapter.is_configured,
-        })
+        sources.append(
+            {
+                "id": "foodsafetykorea",
+                "name": "식품안전나라",
+                "description": "식품의약품안전처 한국 레시피 (영양 정보 포함)",
+                "available": foodsafetykorea_adapter.is_configured,
+            }
+        )
 
-        sources.append({
-            "id": "mafra",
-            "name": "농식품정보원",
-            "description": "농림수산식품교육문화정보원 한국 레시피 (구조화된 재료/조리과정)",
-            "available": mafra_adapter.is_configured,
-        })
+        sources.append(
+            {
+                "id": "mafra",
+                "name": "농식품정보원",
+                "description": "농림수산식품교육문화정보원 한국 레시피 (구조화된 재료/조리과정)",
+                "available": mafra_adapter.is_configured,
+            }
+        )
 
         return sources
 
@@ -457,6 +477,8 @@ class ExternalRecipeService:
     async def _cache_result(self, key: str, data: dict[str, Any]) -> None:
         """Cache result."""
         try:
-            await self.redis.setex(key, CACHE_TTL_SECONDS, json.dumps(data, ensure_ascii=False, default=str))
+            await self.redis.setex(
+                key, CACHE_TTL_SECONDS, json.dumps(data, ensure_ascii=False, default=str)
+            )
         except Exception as e:
             logger.warning(f"Failed to cache result: {e}")

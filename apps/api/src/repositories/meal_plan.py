@@ -17,9 +17,7 @@ class MealPlanRepository(BaseRepository[MealPlan]):
     async def get_by_id_with_slots(self, meal_plan_id: str) -> MealPlan | None:
         result = await self.session.execute(
             select(MealPlan)
-            .options(
-                selectinload(MealPlan.slots).selectinload(MealSlot.recipe)
-            )
+            .options(selectinload(MealPlan.slots).selectinload(MealSlot.recipe))
             .where(MealPlan.id == meal_plan_id)
         )
         return result.scalar_one_or_none()
@@ -31,9 +29,7 @@ class MealPlanRepository(BaseRepository[MealPlan]):
     ) -> MealPlan | None:
         result = await self.session.execute(
             select(MealPlan)
-            .options(
-                selectinload(MealPlan.slots).selectinload(MealSlot.recipe)
-            )
+            .options(selectinload(MealPlan.slots).selectinload(MealSlot.recipe))
             .where(
                 MealPlan.user_id == user_id,
                 MealPlan.week_start_date == week_start_date,
@@ -58,9 +54,7 @@ class MealPlanRepository(BaseRepository[MealPlan]):
 
     async def count_user_meal_plans(self, user_id: str) -> int:
         result = await self.session.execute(
-            select(func.count())
-            .select_from(MealPlan)
-            .where(MealPlan.user_id == user_id)
+            select(func.count()).select_from(MealPlan).where(MealPlan.user_id == user_id)
         )
         return result.scalar_one()
 
@@ -77,9 +71,7 @@ class MealPlanRepository(BaseRepository[MealPlan]):
 
     async def get_slot_by_id(self, slot_id: str) -> MealSlot | None:
         result = await self.session.execute(
-            select(MealSlot)
-            .options(selectinload(MealSlot.recipe))
-            .where(MealSlot.id == slot_id)
+            select(MealSlot).options(selectinload(MealSlot.recipe)).where(MealSlot.id == slot_id)
         )
         return result.scalar_one_or_none()
 

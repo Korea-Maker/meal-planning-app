@@ -27,7 +27,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # 식품안전나라 API 설정
@@ -65,12 +65,14 @@ def parse_recipe(raw: dict) -> dict:
         for idx, part in enumerate(parts_text.split(",")):
             part = part.strip()
             if part:
-                ingredients.append({
-                    "name": part,
-                    "amount": 1,
-                    "unit": "적당량",
-                    "order_index": idx,
-                })
+                ingredients.append(
+                    {
+                        "name": part,
+                        "amount": 1,
+                        "unit": "적당량",
+                        "order_index": idx,
+                    }
+                )
 
     # 조리 순서 파싱 (MANUAL01 ~ MANUAL20)
     instructions = []
@@ -78,11 +80,13 @@ def parse_recipe(raw: dict) -> dict:
         manual_key = f"MANUAL{i:02d}"
         manual_text = raw.get(manual_key, "").strip()
         if manual_text:
-            instructions.append({
-                "step_number": len(instructions) + 1,
-                "description": manual_text,
-                "image_url": raw.get(f"MANUAL_IMG{i:02d}", ""),
-            })
+            instructions.append(
+                {
+                    "step_number": len(instructions) + 1,
+                    "description": manual_text,
+                    "image_url": raw.get(f"MANUAL_IMG{i:02d}", ""),
+                }
+            )
 
     # 카테고리 매핑
     category_map = {
@@ -142,17 +146,21 @@ async def save_recipes_to_db(session: AsyncSession, recipes: list[dict], user_id
                 SELECT id FROM recipes
                 WHERE external_source = :source AND external_id = :ext_id AND user_id = :user_id
             """)
-            result = await session.execute(check_query, {
-                "source": recipe["external_source"],
-                "ext_id": recipe["external_id"],
-                "user_id": user_id,
-            })
+            result = await session.execute(
+                check_query,
+                {
+                    "source": recipe["external_source"],
+                    "ext_id": recipe["external_id"],
+                    "user_id": user_id,
+                },
+            )
             if result.fetchone():
                 logger.debug(f"중복 레시피 스킵: {recipe['title']}")
                 continue
 
             # 레시피 저장
             import uuid
+
             recipe_id = str(uuid.uuid4())
             now = datetime.utcnow()
 
@@ -172,29 +180,32 @@ async def save_recipes_to_db(session: AsyncSession, recipes: list[dict], user_id
                 )
             """)
 
-            await session.execute(insert_recipe, {
-                "id": recipe_id,
-                "user_id": user_id,
-                "title": recipe["title"],
-                "description": recipe["description"],
-                "image_url": recipe["image_url"],
-                "prep_time": recipe["prep_time_minutes"],
-                "cook_time": recipe["cook_time_minutes"],
-                "servings": recipe["servings"],
-                "difficulty": recipe["difficulty"],
-                "categories": recipe["categories"],
-                "tags": recipe["tags"],
-                "source_url": None,
-                "external_source": recipe["external_source"],
-                "external_id": recipe["external_id"],
-                "imported_at": now,
-                "calories": recipe["calories"],
-                "protein": recipe["protein_grams"],
-                "carbs": recipe["carbs_grams"],
-                "fat": recipe["fat_grams"],
-                "created_at": now,
-                "updated_at": now,
-            })
+            await session.execute(
+                insert_recipe,
+                {
+                    "id": recipe_id,
+                    "user_id": user_id,
+                    "title": recipe["title"],
+                    "description": recipe["description"],
+                    "image_url": recipe["image_url"],
+                    "prep_time": recipe["prep_time_minutes"],
+                    "cook_time": recipe["cook_time_minutes"],
+                    "servings": recipe["servings"],
+                    "difficulty": recipe["difficulty"],
+                    "categories": recipe["categories"],
+                    "tags": recipe["tags"],
+                    "source_url": None,
+                    "external_source": recipe["external_source"],
+                    "external_id": recipe["external_id"],
+                    "imported_at": now,
+                    "calories": recipe["calories"],
+                    "protein": recipe["protein_grams"],
+                    "carbs": recipe["carbs_grams"],
+                    "fat": recipe["fat_grams"],
+                    "created_at": now,
+                    "updated_at": now,
+                },
+            )
 
             # 재료 저장
             for ing in recipe["ingredients"]:
@@ -203,17 +214,20 @@ async def save_recipes_to_db(session: AsyncSession, recipes: list[dict], user_id
                     INSERT INTO ingredients (id, recipe_id, name, amount, unit, notes, order_index, created_at, updated_at)
                     VALUES (:id, :recipe_id, :name, :amount, :unit, :notes, :order_index, :created_at, :updated_at)
                 """)
-                await session.execute(insert_ingredient, {
-                    "id": ing_id,
-                    "recipe_id": recipe_id,
-                    "name": ing["name"],
-                    "amount": ing["amount"],
-                    "unit": ing["unit"],
-                    "notes": None,
-                    "order_index": ing["order_index"],
-                    "created_at": now,
-                    "updated_at": now,
-                })
+                await session.execute(
+                    insert_ingredient,
+                    {
+                        "id": ing_id,
+                        "recipe_id": recipe_id,
+                        "name": ing["name"],
+                        "amount": ing["amount"],
+                        "unit": ing["unit"],
+                        "notes": None,
+                        "order_index": ing["order_index"],
+                        "created_at": now,
+                        "updated_at": now,
+                    },
+                )
 
             # 조리 순서 저장
             for inst in recipe["instructions"]:
@@ -222,15 +236,18 @@ async def save_recipes_to_db(session: AsyncSession, recipes: list[dict], user_id
                     INSERT INTO instructions (id, recipe_id, step_number, description, image_url, created_at, updated_at)
                     VALUES (:id, :recipe_id, :step_number, :description, :image_url, :created_at, :updated_at)
                 """)
-                await session.execute(insert_instruction, {
-                    "id": inst_id,
-                    "recipe_id": recipe_id,
-                    "step_number": inst["step_number"],
-                    "description": inst["description"],
-                    "image_url": inst.get("image_url"),
-                    "created_at": now,
-                    "updated_at": now,
-                })
+                await session.execute(
+                    insert_instruction,
+                    {
+                        "id": inst_id,
+                        "recipe_id": recipe_id,
+                        "step_number": inst["step_number"],
+                        "description": inst["description"],
+                        "image_url": inst.get("image_url"),
+                        "created_at": now,
+                        "updated_at": now,
+                    },
+                )
 
             saved_count += 1
             logger.info(f"저장 완료: {recipe['title']}")
@@ -248,7 +265,9 @@ async def main(api_key: str, user_id: str, max_recipes: int = 500):
     logger.info(f"한국 레시피 수집 시작 (최대 {max_recipes}개)")
 
     # DB 연결
-    database_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/meal_planning")
+    database_url = os.getenv(
+        "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/meal_planning"
+    )
     engine = create_async_engine(database_url)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -294,7 +313,9 @@ if __name__ == "__main__":
 
     api_key = args.api_key or os.getenv("FOODSAFETYKOREA_API_KEY")
     if not api_key:
-        print("오류: API 키가 필요합니다. --api-key 또는 FOODSAFETYKOREA_API_KEY 환경변수를 설정하세요.")
+        print(
+            "오류: API 키가 필요합니다. --api-key 또는 FOODSAFETYKOREA_API_KEY 환경변수를 설정하세요."
+        )
         sys.exit(1)
 
     asyncio.run(main(api_key, args.user_id, args.max))

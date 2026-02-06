@@ -56,6 +56,4 @@ class User(BaseModel):
         cascade="all, delete-orphan",
     )
 
-    __table_args__ = (
-        Index("ix_users_provider_provider_id", "provider", "provider_id"),
-    )
+    __table_args__ = (Index("ix_users_provider_provider_id", "provider", "provider_id"),)

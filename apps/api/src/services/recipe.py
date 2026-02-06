@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.exceptions import NotFoundError, RecipeNotFoundError
+from src.core.exceptions import RecipeNotFoundError
 from src.models.recipe import Recipe
 from src.repositories.recipe import RecipeRepository
 from src.schemas.common import PaginationMeta
@@ -31,13 +31,9 @@ class RecipeService:
             "source_url": str(data.source_url) if data.source_url else None,
         }
 
-        ingredients = [
-            ing.model_dump() for ing in data.ingredients
-        ]
+        ingredients = [ing.model_dump() for ing in data.ingredients]
 
-        instructions = [
-            inst.model_dump() for inst in data.instructions
-        ]
+        instructions = [inst.model_dump() for inst in data.instructions]
 
         recipe = await self.recipe_repo.create_with_details(
             recipe_data,

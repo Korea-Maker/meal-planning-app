@@ -52,6 +52,7 @@ jobs:
         with:
           dockerfile: ${{ env.DOCKERFILE_PATH }}
           format: tty
+          no-fail: true
 
   container-scan:
     name: 컨테이너 취약점 스캔

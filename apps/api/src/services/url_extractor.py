@@ -163,7 +163,11 @@ class URLExtractorService:
                     InstructionCreate(**inst) for inst in recipe_data.get("instructions", [])
                 ]
                 recipe = RecipeCreate(
-                    **{k: v for k, v in recipe_data.items() if k not in ("ingredients", "instructions")},
+                    **{
+                        k: v
+                        for k, v in recipe_data.items()
+                        if k not in ("ingredients", "instructions")
+                    },
                     ingredients=ingredients,
                     instructions=instructions,
                 )
@@ -195,7 +199,9 @@ class URLExtractorService:
                 "confidence": response.confidence,
                 "error": response.error,
             }
-            await self.redis.setex(cache_key, CACHE_TTL_SECONDS, json.dumps(data, ensure_ascii=False))
+            await self.redis.setex(
+                cache_key, CACHE_TTL_SECONDS, json.dumps(data, ensure_ascii=False)
+            )
         except Exception as e:
             logger.warning(f"Failed to cache result: {e}")
 
@@ -294,10 +300,12 @@ class URLExtractorService:
         ingredients = []
         for idx, ing in enumerate(data.get("recipeIngredient", [])):
             parsed = self._parse_ingredient_string(ing)
-            ingredients.append({
-                **parsed,
-                "order_index": idx,
-            })
+            ingredients.append(
+                {
+                    **parsed,
+                    "order_index": idx,
+                }
+            )
 
         instructions = []
         instruction_data = data.get("recipeInstructions", [])
@@ -306,22 +314,26 @@ class URLExtractorService:
 
         for idx, inst in enumerate(instruction_data, start=1):
             if isinstance(inst, str):
-                instructions.append({
-                    "step_number": idx,
-                    "description": inst,
-                    "image_url": None,
-                })
+                instructions.append(
+                    {
+                        "step_number": idx,
+                        "description": inst,
+                        "image_url": None,
+                    }
+                )
             elif isinstance(inst, dict):
                 text = inst.get("text") or inst.get("name", "")
                 image = None
                 if "image" in inst:
                     img = inst["image"]
                     image = img if isinstance(img, str) else img.get("url")
-                instructions.append({
-                    "step_number": idx,
-                    "description": text,
-                    "image_url": image,
-                })
+                instructions.append(
+                    {
+                        "step_number": idx,
+                        "description": text,
+                        "image_url": image,
+                    }
+                )
 
         image_url = None
         image_data = data.get("image")
@@ -409,13 +421,31 @@ class URLExtractorService:
                         amount = float(amount_str)
                 except (ValueError, IndexError):
                     amount = 1.0
-            remaining = ingredient_str[amount_match.end():].strip()
+            remaining = ingredient_str[amount_match.end() :].strip()
 
         common_units = [
-            "큰술", "작은술", "테이블스푼", "티스푼", "tbsp", "tsp",
-            "컵", "cup", "cups",
-            "g", "kg", "ml", "L", "oz", "lb",
-            "개", "쪽", "줄기", "장", "조각", "알", "통",
+            "큰술",
+            "작은술",
+            "테이블스푼",
+            "티스푼",
+            "tbsp",
+            "tsp",
+            "컵",
+            "cup",
+            "cups",
+            "g",
+            "kg",
+            "ml",
+            "L",
+            "oz",
+            "lb",
+            "개",
+            "쪽",
+            "줄기",
+            "장",
+            "조각",
+            "알",
+            "통",
         ]
 
         unit = "개"
@@ -424,13 +454,13 @@ class URLExtractorService:
         for u in common_units:
             if remaining.lower().startswith(u.lower()):
                 unit = u
-                name = remaining[len(u):].strip()
+                name = remaining[len(u) :].strip()
                 break
             pattern = rf"^(\S*{u})\s+"
             match = re.match(pattern, remaining, re.IGNORECASE)
             if match:
                 unit = match.group(1)
-                name = remaining[match.end():].strip()
+                name = remaining[match.end() :].strip()
                 break
 
         name = re.sub(r"^\s*,\s*", "", name)
@@ -452,8 +482,14 @@ class URLExtractorService:
     ) -> list[str]:
         """Schema.org 카테고리를 내부 카테고리로 매핑합니다."""
         valid_categories = {
-            "breakfast", "lunch", "dinner", "snack",
-            "dessert", "appetizer", "side", "drink"
+            "breakfast",
+            "lunch",
+            "dinner",
+            "snack",
+            "dessert",
+            "appetizer",
+            "side",
+            "drink",
         }
 
         category_mapping = {

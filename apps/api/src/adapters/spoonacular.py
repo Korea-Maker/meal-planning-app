@@ -76,9 +76,7 @@ class SpoonacularAdapter:
                 data = response.json()
 
                 return {
-                    "results": [
-                        self._transform_search_result(r) for r in data.get("results", [])
-                    ],
+                    "results": [self._transform_search_result(r) for r in data.get("results", [])],
                     "totalResults": data.get("totalResults", 0),
                 }
         except httpx.HTTPError as e:
@@ -152,10 +150,7 @@ class SpoonacularAdapter:
                 response.raise_for_status()
                 data = response.json()
 
-                return [
-                    self._transform_recipe_details(r)
-                    for r in data.get("recipes", [])
-                ]
+                return [self._transform_recipe_details(r) for r in data.get("recipes", [])]
         except httpx.HTTPError as e:
             logger.error(f"Spoonacular random recipes error: {e}")
             return []
@@ -177,23 +172,27 @@ class SpoonacularAdapter:
         """Transform Spoonacular recipe details to internal format."""
         ingredients = []
         for idx, ing in enumerate(data.get("extendedIngredients", [])):
-            ingredients.append({
-                "name": ing.get("name", ""),
-                "amount": ing.get("amount", 1),
-                "unit": ing.get("unit", "개"),
-                "notes": ing.get("original"),
-                "order_index": idx,
-            })
+            ingredients.append(
+                {
+                    "name": ing.get("name", ""),
+                    "amount": ing.get("amount", 1),
+                    "unit": ing.get("unit", "개"),
+                    "notes": ing.get("original"),
+                    "order_index": idx,
+                }
+            )
 
         instructions = []
         analyzed = data.get("analyzedInstructions", [])
         if analyzed:
             for step in analyzed[0].get("steps", []):
-                instructions.append({
-                    "step_number": step.get("number", 1),
-                    "description": step.get("step", ""),
-                    "image_url": None,
-                })
+                instructions.append(
+                    {
+                        "step_number": step.get("number", 1),
+                        "description": step.get("step", ""),
+                        "image_url": None,
+                    }
+                )
 
         nutrition = data.get("nutrition", {}).get("nutrients", [])
         calories = None
@@ -239,16 +238,14 @@ class SpoonacularAdapter:
     def _strip_html(self, text: str) -> str:
         """Remove HTML tags from text."""
         import re
+
         return re.sub(r"<[^>]+>", "", text).strip()
 
     def _estimate_difficulty(self, data: dict) -> str:
         """Estimate recipe difficulty based on various factors."""
         ready_time = data.get("readyInMinutes", 30)
         num_ingredients = len(data.get("extendedIngredients", []))
-        num_steps = sum(
-            len(inst.get("steps", []))
-            for inst in data.get("analyzedInstructions", [])
-        )
+        num_steps = sum(len(inst.get("steps", [])) for inst in data.get("analyzedInstructions", []))
 
         score = 0
         if ready_time > 60:

@@ -23,12 +23,14 @@ class AuthService:
         if await self.user_repo.email_exists(data.email):
             raise EmailAlreadyExistsError()
 
-        user = await self.user_repo.create({
-            "email": data.email,
-            "hashed_password": hash_password(data.password),
-            "name": data.name,
-            "provider": "email",
-        })
+        user = await self.user_repo.create(
+            {
+                "email": data.email,
+                "hashed_password": hash_password(data.password),
+                "name": data.name,
+                "provider": "email",
+            }
+        )
 
         tokens = self._generate_tokens(user.id)
         return user, tokens
@@ -78,13 +80,15 @@ class AuthService:
                     f"Email already registered with {existing_user.provider}"
                 )
 
-            user = await self.user_repo.create({
-                "email": email,
-                "name": name,
-                "avatar_url": avatar_url,
-                "provider": provider,
-                "provider_id": provider_id,
-            })
+            user = await self.user_repo.create(
+                {
+                    "email": email,
+                    "name": name,
+                    "avatar_url": avatar_url,
+                    "provider": provider,
+                    "provider_id": provider_id,
+                }
+            )
 
         tokens = self._generate_tokens(user.id)
         return user, tokens

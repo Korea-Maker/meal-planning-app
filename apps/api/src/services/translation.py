@@ -1,7 +1,6 @@
 """DeepL translation service for English to Korean recipe translation."""
 
 import hashlib
-import json
 import logging
 from typing import Any
 
@@ -170,7 +169,9 @@ class TranslationService:
                     data = response.json()
                     translations = data["translations"]
 
-                    for idx, (original, translation) in enumerate(zip(texts_to_translate, translations)):
+                    for idx, (original, translation) in enumerate(
+                        zip(texts_to_translate, translations)
+                    ):
                         translated_text = translation["text"]
                         results[indices_to_translate[idx]] = translated_text
                         await self._cache_translation(original, translated_text)

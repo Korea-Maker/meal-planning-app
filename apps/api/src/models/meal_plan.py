@@ -31,6 +31,4 @@ class MealPlan(BaseModel):
         back_populates="meal_plan",
     )
 
-    __table_args__ = (
-        Index("ix_meal_plans_user_week", "user_id", "week_start_date", unique=True),
-    )
+    __table_args__ = (Index("ix_meal_plans_user_week", "user_id", "week_start_date", unique=True),)

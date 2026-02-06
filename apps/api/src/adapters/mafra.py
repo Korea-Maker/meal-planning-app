@@ -145,6 +145,7 @@ class MafraAdapter:
             recipes = result.get("results", [])
 
             import random
+
             random.shuffle(recipes)
 
             return recipes[:number]
@@ -271,13 +272,17 @@ class MafraAdapter:
             # Parse amount and unit from capacity
             amount, unit = self._parse_ingredient_capacity(ingredient_capacity)
 
-            parsed_ingredients.append({
-                "name": ingredient_name or "재료",
-                "amount": amount,
-                "unit": unit,
-                "notes": f"{ingredient_type}: {ingredient_capacity}" if ingredient_type else ingredient_capacity,
-                "order_index": idx,
-            })
+            parsed_ingredients.append(
+                {
+                    "name": ingredient_name or "재료",
+                    "amount": amount,
+                    "unit": unit,
+                    "notes": f"{ingredient_type}: {ingredient_capacity}"
+                    if ingredient_type
+                    else ingredient_capacity,
+                    "order_index": idx,
+                }
+            )
 
         # Parse instructions
         parsed_instructions = []
@@ -292,11 +297,13 @@ class MafraAdapter:
             if step_tip:
                 full_description += f"\n\n💡 팁: {step_tip}"
 
-            parsed_instructions.append({
-                "step_number": step_number,
-                "description": full_description,
-                "image_url": step_img if step_img else None,
-            })
+            parsed_instructions.append(
+                {
+                    "step_number": step_number,
+                    "description": full_description,
+                    "image_url": step_img if step_img else None,
+                }
+            )
 
         # Map category
         category = data.get("TY_NM", "")

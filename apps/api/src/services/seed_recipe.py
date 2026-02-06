@@ -114,7 +114,8 @@ class SeedRecipeService:
         if query:
             query_lower = query.lower()
             results = [
-                r for r in results
+                r
+                for r in results
                 if query_lower in r.get("title", "").lower()
                 or query_lower in r.get("description", "").lower()
                 or any(query_lower in tag.lower() for tag in r.get("tags", []))
@@ -124,20 +125,16 @@ class SeedRecipeService:
         if category:
             category_lower = category.lower()
             results = [
-                r for r in results
-                if category_lower in [c.lower() for c in r.get("categories", [])]
+                r for r in results if category_lower in [c.lower() for c in r.get("categories", [])]
             ]
 
         # Filter by tag
         if tag:
             tag_lower = tag.lower()
-            results = [
-                r for r in results
-                if tag_lower in [t.lower() for t in r.get("tags", [])]
-            ]
+            results = [r for r in results if tag_lower in [t.lower() for t in r.get("tags", [])]]
 
         total = len(results)
-        paginated = results[offset:offset + number]
+        paginated = results[offset : offset + number]
 
         return {
             "results": paginated,

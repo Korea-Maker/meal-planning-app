@@ -228,6 +228,9 @@ jobs:
             echo "TURBO_TEAM=${{ secrets.TURBO_TEAM }}" >> $GITHUB_ENV
           fi
 
+      - name: 공유 패키지 빌드
+        run: pnpm --filter './packages/*' build
+
       - name: Next.js 빌드 (Frontend)
         run: pnpm --filter web build
         env:

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,11 @@ import {
   ActivityIndicator,
   ScrollView,
   Alert,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
-import { useShoppingList, useCheckShoppingItem, useDeleteShoppingList } from '../../hooks';
+import { useShoppingList, useCheckShoppingItem, useDeleteShoppingList, useAddShoppingItem } from '../../hooks';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 import type { ShoppingItem } from '@meal-planning/shared-types';
 
@@ -50,6 +52,34 @@ export default function ShoppingListDetailScreen({ route }: ShoppingListDetailSc
   const { data: shoppingList, isLoading, error, refetch } = useShoppingList(listId);
   const checkItemMutation = useCheckShoppingItem(listId);
   const deleteShoppingList = useDeleteShoppingList();
+  const addShoppingItem = useAddShoppingItem(listId);
+
+  // Add item modal state
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemAmount, setNewItemAmount] = useState('');
+  const [newItemUnit, setNewItemUnit] = useState('');
+
+  const handleAddItem = async () => {
+    const name = newItemName.trim();
+    if (!name) {
+      Alert.alert('알림', '재료 이름을 입력해주세요.');
+      return;
+    }
+    try {
+      await addShoppingItem.mutateAsync({
+        ingredient_name: name,
+        amount: parseFloat(newItemAmount) || 1,
+        unit: newItemUnit.trim() || '개',
+      });
+      setAddModalVisible(false);
+      setNewItemName('');
+      setNewItemAmount('');
+      setNewItemUnit('');
+    } catch {
+      Alert.alert('오류', '항목을 추가하는데 실패했습니다.');
+    }
+  };
 
   const handleDeleteList = () => {
     if (!shoppingList) return;
@@ -231,6 +261,77 @@ export default function ShoppingListDetailScreen({ route }: ShoppingListDetailSc
           ))}
         </ScrollView>
       )}
+
+      {/* Add Item FAB */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setAddModalVisible(true)}
+      >
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
+
+      {/* Add Item Modal */}
+      <Modal
+        visible={addModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAddModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>항목 추가</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="재료 이름 (예: 양파)"
+              placeholderTextColor={colors.textMuted}
+              value={newItemName}
+              onChangeText={setNewItemName}
+              autoFocus
+            />
+            <View style={styles.modalRow}>
+              <TextInput
+                style={[styles.modalInput, styles.modalInputHalf]}
+                placeholder="수량 (예: 2)"
+                placeholderTextColor={colors.textMuted}
+                value={newItemAmount}
+                onChangeText={setNewItemAmount}
+                keyboardType="numeric"
+              />
+              <TextInput
+                style={[styles.modalInput, styles.modalInputHalf]}
+                placeholder="단위 (예: 개)"
+                placeholderTextColor={colors.textMuted}
+                value={newItemUnit}
+                onChangeText={setNewItemUnit}
+              />
+            </View>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => {
+                  setAddModalVisible(false);
+                  setNewItemName('');
+                  setNewItemAmount('');
+                  setNewItemUnit('');
+                }}
+              >
+                <Text style={styles.modalCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalAddButton, addShoppingItem.isPending && styles.modalAddButtonDisabled]}
+                onPress={handleAddItem}
+                disabled={addShoppingItem.isPending}
+              >
+                {addShoppingItem.isPending ? (
+                  <ActivityIndicator size="small" color={colors.textLight} />
+                ) : (
+                  <Text style={styles.modalAddText}>추가</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -452,5 +553,91 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     marginTop: spacing.md,
+  },
+  fab: {
+    position: 'absolute',
+    right: spacing.xl,
+    bottom: spacing.xl,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadow.lg,
+  },
+  fabText: {
+    fontSize: 28,
+    color: colors.textLight,
+    fontWeight: '300',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  modalContent: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing.xl,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    ...typography.h4,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  modalInput: {
+    ...typography.body,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  modalInputHalf: {
+    flex: 1,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    ...typography.button,
+    color: colors.textSecondary,
+  },
+  modalAddButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    ...shadow.md,
+  },
+  modalAddButtonDisabled: {
+    opacity: 0.5,
+  },
+  modalAddText: {
+    ...typography.button,
+    color: colors.textLight,
   },
 });

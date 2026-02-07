@@ -26,8 +26,60 @@ export default function ShoppingListsScreen() {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [newListName, setNewListName] = useState('');
 
+  // Edit mode state
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   const handlePress = (listId: string) => {
+    if (isEditMode) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(listId)) {
+          next.delete(listId);
+        } else {
+          next.add(listId);
+        }
+        return next;
+      });
+      return;
+    }
     navigation.navigate('ShoppingListDetail', { listId });
+  };
+
+  const toggleEditMode = () => {
+    setIsEditMode((prev) => !prev);
+    setSelectedIds(new Set());
+  };
+
+  const selectAll = () => {
+    const allIds = new Set((data?.data || []).map((l) => l.id));
+    setSelectedIds(allIds);
+  };
+
+  const deleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    Alert.alert(
+      '선택 삭제',
+      `${selectedIds.size}개의 목록을 삭제하시겠습니까?`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              for (const id of selectedIds) {
+                await deleteShoppingList.mutateAsync(id);
+              }
+              setSelectedIds(new Set());
+              setIsEditMode(false);
+            } catch {
+              Alert.alert('오류', '일부 목록을 삭제하는데 실패했습니다.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleCreateList = async () => {
@@ -77,14 +129,21 @@ export default function ShoppingListsScreen() {
     const progress = itemCount > 0 ? (checkedCount / itemCount) * 100 : 0;
     const isComplete = itemCount > 0 && checkedCount === itemCount;
 
+    const isSelected = selectedIds.has(item.id);
+
     return (
       <TouchableOpacity
-        style={styles.listCard}
+        style={[styles.listCard, isEditMode && isSelected && styles.listCardSelected]}
         onPress={() => handlePress(item.id)}
-        onLongPress={() => handleDeleteList(item)}
+        onLongPress={() => !isEditMode && handleDeleteList(item)}
         activeOpacity={0.7}
       >
         <View style={styles.listHeader}>
+          {isEditMode && (
+            <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+              {isSelected && <Text style={styles.checkboxCheck}>✓</Text>}
+            </View>
+          )}
           <View style={[styles.listIcon, isComplete && styles.listIconComplete]}>
             <Text style={styles.listIconText}>{isComplete ? '✅' : '🛒'}</Text>
           </View>
@@ -98,13 +157,15 @@ export default function ShoppingListsScreen() {
               {item.meal_plan_id && ' • 식사 계획에서 생성됨'}
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.deleteListButton}
-            onPress={() => handleDeleteList(item)}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.deleteListButtonText}>🗑</Text>
-          </TouchableOpacity>
+          {!isEditMode && (
+            <TouchableOpacity
+              style={styles.deleteListButton}
+              onPress={() => handleDeleteList(item)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.deleteListButtonText}>🗑</Text>
+            </TouchableOpacity>
+          )}
         </View>
         {itemCount > 0 && (
           <View style={styles.progressContainer}>
@@ -140,6 +201,35 @@ export default function ShoppingListsScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Edit Mode Header */}
+      {lists.length > 0 && (
+        <View style={styles.editHeader}>
+          {isEditMode && (
+            <View style={styles.editActions}>
+              <TouchableOpacity onPress={selectAll}>
+                <Text style={styles.editActionText}>전체 선택</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={deleteSelected}
+                disabled={selectedIds.size === 0}
+              >
+                <Text style={[
+                  styles.editDeleteText,
+                  selectedIds.size === 0 && styles.editDeleteTextDisabled,
+                ]}>
+                  삭제 ({selectedIds.size})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <TouchableOpacity onPress={toggleEditMode} style={styles.editToggleButton}>
+            <Text style={styles.editToggleText}>
+              {isEditMode ? '완료' : '편집'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <FlatList
         data={lists}
         renderItem={renderListItem}
@@ -448,5 +538,64 @@ const styles = StyleSheet.create({
   modalCreateText: {
     ...typography.button,
     color: colors.textLight,
+  },
+  editHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+  editActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    flex: 1,
+  },
+  editActionText: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  editDeleteText: {
+    ...typography.body,
+    color: colors.error,
+    fontWeight: '600',
+  },
+  editDeleteTextDisabled: {
+    opacity: 0.4,
+  },
+  editToggleButton: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
+  editToggleText: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  listCardSelected: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm,
+  },
+  checkboxSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  checkboxCheck: {
+    color: colors.textLight,
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,18 +7,66 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Alert,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
-import { useShoppingLists } from '../../hooks';
+import { useShoppingLists, useCreateShoppingList, useDeleteShoppingList } from '../../hooks';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 import type { ShoppingList } from '@meal-planning/shared-types';
 
 export default function ShoppingListsScreen() {
   const navigation = useSimpleNavigation();
   const { data, isLoading, error, refetch } = useShoppingLists();
+  const createShoppingList = useCreateShoppingList();
+  const deleteShoppingList = useDeleteShoppingList();
+
+  // Create modal state
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [newListName, setNewListName] = useState('');
 
   const handlePress = (listId: string) => {
     navigation.navigate('ShoppingListDetail', { listId });
+  };
+
+  const handleCreateList = async () => {
+    const name = newListName.trim();
+    if (!name) {
+      Alert.alert('알림', '목록 이름을 입력해주세요.');
+      return;
+    }
+    try {
+      const list = await createShoppingList.mutateAsync({ name });
+      setCreateModalVisible(false);
+      setNewListName('');
+      if (list?.id) {
+        navigation.navigate('ShoppingListDetail', { listId: list.id });
+      }
+    } catch {
+      Alert.alert('오류', '장보기 목록을 생성하는데 실패했습니다.');
+    }
+  };
+
+  const handleDeleteList = (item: ShoppingList) => {
+    Alert.alert(
+      '삭제 확인',
+      `"${item.name}" 목록을 삭제하시겠습니까?`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteShoppingList.mutateAsync(item.id);
+            } catch {
+              Alert.alert('오류', '목록을 삭제하는데 실패했습니다.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderListItem = ({ item }: { item: ShoppingList }) => {
@@ -33,6 +81,7 @@ export default function ShoppingListsScreen() {
       <TouchableOpacity
         style={styles.listCard}
         onPress={() => handlePress(item.id)}
+        onLongPress={() => handleDeleteList(item)}
         activeOpacity={0.7}
       >
         <View style={styles.listHeader}>
@@ -49,6 +98,13 @@ export default function ShoppingListsScreen() {
               {item.meal_plan_id && ' • 식사 계획에서 생성됨'}
             </Text>
           </View>
+          <TouchableOpacity
+            style={styles.deleteListButton}
+            onPress={() => handleDeleteList(item)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.deleteListButtonText}>🗑</Text>
+          </TouchableOpacity>
         </View>
         {itemCount > 0 && (
           <View style={styles.progressContainer}>
@@ -121,15 +177,59 @@ export default function ShoppingListsScreen() {
         </View>
       )}
 
-      {/* FAB - for future manual list creation */}
+      {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => {
-          // TODO: Implement manual list creation
-        }}
+        onPress={() => setCreateModalVisible(true)}
       >
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
+
+      {/* Create Modal */}
+      <Modal
+        visible={createModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCreateModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>새 장보기 목록</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="목록 이름 (예: 이번 주 장보기)"
+              placeholderTextColor={colors.textMuted}
+              value={newListName}
+              onChangeText={setNewListName}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleCreateList}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => {
+                  setCreateModalVisible(false);
+                  setNewListName('');
+                }}
+              >
+                <Text style={styles.modalCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalCreateButton, createShoppingList.isPending && styles.modalCreateButtonDisabled]}
+                onPress={handleCreateList}
+                disabled={createShoppingList.isPending}
+              >
+                {createShoppingList.isPending ? (
+                  <ActivityIndicator size="small" color={colors.textLight} />
+                ) : (
+                  <Text style={styles.modalCreateText}>생성</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -265,6 +365,12 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.md,
   },
+  deleteListButton: {
+    padding: spacing.sm,
+  },
+  deleteListButtonText: {
+    fontSize: 18,
+  },
   fab: {
     position: 'absolute',
     right: spacing.xl,
@@ -281,5 +387,66 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: colors.textLight,
     fontWeight: '300',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  modalContent: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing.xl,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    ...typography.h4,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  modalInput: {
+    ...typography.body,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    color: colors.text,
+    marginBottom: spacing.lg,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    ...typography.button,
+    color: colors.textSecondary,
+  },
+  modalCreateButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    ...shadow.md,
+  },
+  modalCreateButtonDisabled: {
+    opacity: 0.5,
+  },
+  modalCreateText: {
+    ...typography.button,
+    color: colors.textLight,
   },
 });

@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
-import { useShoppingList, useCheckShoppingItem } from '../../hooks';
+import { useShoppingList, useCheckShoppingItem, useDeleteShoppingList } from '../../hooks';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 import type { ShoppingItem } from '@meal-planning/shared-types';
 
@@ -48,6 +49,30 @@ export default function ShoppingListDetailScreen({ route }: ShoppingListDetailSc
   const { listId } = route.params;
   const { data: shoppingList, isLoading, error, refetch } = useShoppingList(listId);
   const checkItemMutation = useCheckShoppingItem(listId);
+  const deleteShoppingList = useDeleteShoppingList();
+
+  const handleDeleteList = () => {
+    if (!shoppingList) return;
+    Alert.alert(
+      '삭제 확인',
+      `"${shoppingList.name}" 목록을 삭제하시겠습니까?`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteShoppingList.mutateAsync(listId);
+              navigation.goBack();
+            } catch {
+              Alert.alert('오류', '목록을 삭제하는데 실패했습니다.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleToggleItem = async (itemId: string) => {
     try {
@@ -144,6 +169,9 @@ export default function ShoppingListDetailScreen({ route }: ShoppingListDetailSc
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backButtonText}>← 뒤로</Text>
         </TouchableOpacity>
+        <TouchableOpacity onPress={handleDeleteList} style={styles.deleteButton}>
+          <Text style={styles.deleteButtonText}>🗑 삭제</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Progress Header */}
@@ -215,6 +243,7 @@ const styles = StyleSheet.create({
   backHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.card,
@@ -228,6 +257,15 @@ const styles = StyleSheet.create({
   backButtonText: {
     ...typography.body,
     color: colors.primary,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  deleteButtonText: {
+    ...typography.body,
+    color: colors.error,
     fontWeight: '600',
   },
   centerContainer: {

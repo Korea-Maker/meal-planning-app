@@ -65,11 +65,14 @@ const mealSlotStyles: Record<MealKey, ViewStyle> = {
 export default function MealPlanScreen() {
   const navigation = useSimpleNavigation();
 
-  // Generate current week dates (Sunday to Saturday)
+  // Week offset for navigation (0 = current week, -1 = last week, +1 = next week)
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  // Generate week dates based on offset (Sunday to Saturday)
   const { weekDates, weekStartDate, weekStartDateISO } = useMemo(() => {
     const today = new Date();
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday
+    startOfWeek.setDate(today.getDate() - today.getDay() + weekOffset * 7); // Sunday
     startOfWeek.setHours(0, 0, 0, 0);
 
     const dates = Array.from({ length: 7 }, (_, i) => {
@@ -88,7 +91,7 @@ export default function MealPlanScreen() {
       weekStartDate: startOfWeek,
       weekStartDateISO: isoDate,
     };
-  }, []);
+  }, [weekOffset]);
 
   // Fetch week meal plan
   const { data: mealPlan, isLoading, error, refetch } = useWeekMealPlan(weekStartDateISO);
@@ -410,9 +413,28 @@ export default function MealPlanScreen() {
       {/* Week Header */}
       <View style={styles.weekHeader}>
         <View style={styles.weekHeaderRow}>
-          <Text style={styles.weekTitle}>
-            {weekStartDate.getMonth() + 1}월 {weekStartDate.getDate()}일 - {weekDates[6].getMonth() + 1}월 {weekDates[6].getDate()}일
-          </Text>
+          <TouchableOpacity
+            style={styles.weekNavButton}
+            onPress={() => setWeekOffset((o) => o - 1)}
+          >
+            <Text style={styles.weekNavText}>◀</Text>
+          </TouchableOpacity>
+          <View style={styles.weekTitleContainer}>
+            <Text style={styles.weekTitle}>
+              {weekStartDate.getMonth() + 1}월 {weekStartDate.getDate()}일 - {weekDates[6].getMonth() + 1}월 {weekDates[6].getDate()}일
+            </Text>
+            {weekOffset !== 0 && (
+              <TouchableOpacity onPress={() => setWeekOffset(0)}>
+                <Text style={styles.todayButtonText}>이번 주</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity
+            style={styles.weekNavButton}
+            onPress={() => setWeekOffset((o) => o + 1)}
+          >
+            <Text style={styles.weekNavText}>▶</Text>
+          </TouchableOpacity>
           {mealPlan && mealPlan.slots.length > 0 && (
             <TouchableOpacity
               style={[styles.editModeButton, isEditMode && styles.editModeButtonActive]}
@@ -667,13 +689,30 @@ const styles = StyleSheet.create({
   },
   weekHeaderRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  weekNavButton: {
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
+  },
+  weekNavText: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  weekTitleContainer: {
+    flex: 1,
     alignItems: 'center',
   },
   weekTitle: {
     ...typography.h4,
     color: colors.text,
-    flex: 1,
+  },
+  todayButtonText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '600',
+    marginTop: 2,
   },
   editModeButton: {
     paddingVertical: spacing.xs,

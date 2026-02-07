@@ -240,7 +240,16 @@ export default function RecipeListScreen() {
                   <Text style={styles.sourceTitle}>🇰🇷 한식 레시피</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {discoverData.korean_seed.map((recipe) => (
-                      <TouchableOpacity key={`kr-${recipe.external_id}`} style={styles.discoverCard}>
+                      <TouchableOpacity
+                        key={`kr-${recipe.external_id}`}
+                        style={styles.discoverCard}
+                        onPress={() => navigation.navigate('ExternalRecipeDetail', {
+                          source: recipe.source || 'korean_seed',
+                          externalId: recipe.external_id,
+                          title: recipe.title,
+                          imageUrl: recipe.image_url,
+                        })}
+                      >
                         {recipe.image_url ? (
                           <Image source={{ uri: recipe.image_url }} style={styles.discoverCardImage} resizeMode="cover" />
                         ) : (
@@ -264,7 +273,16 @@ export default function RecipeListScreen() {
                   <Text style={styles.sourceTitle}>🌍 Spoonacular 추천</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {discoverData.spoonacular.map((recipe) => (
-                      <TouchableOpacity key={`sp-${recipe.external_id}`} style={styles.discoverCard}>
+                      <TouchableOpacity
+                        key={`sp-${recipe.external_id}`}
+                        style={styles.discoverCard}
+                        onPress={() => navigation.navigate('ExternalRecipeDetail', {
+                          source: recipe.source || 'spoonacular',
+                          externalId: recipe.external_id,
+                          title: recipe.title,
+                          imageUrl: recipe.image_url,
+                        })}
+                      >
                         {recipe.image_url ? (
                           <Image source={{ uri: recipe.image_url }} style={styles.discoverCardImage} resizeMode="cover" />
                         ) : (
@@ -288,7 +306,16 @@ export default function RecipeListScreen() {
                   <Text style={styles.sourceTitle}>🍴 TheMealDB 추천</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {discoverData.themealdb.map((recipe) => (
-                      <TouchableOpacity key={`mdb-${recipe.external_id}`} style={styles.discoverCard}>
+                      <TouchableOpacity
+                        key={`mdb-${recipe.external_id}`}
+                        style={styles.discoverCard}
+                        onPress={() => navigation.navigate('ExternalRecipeDetail', {
+                          source: recipe.source || 'themealdb',
+                          externalId: recipe.external_id,
+                          title: recipe.title,
+                          imageUrl: recipe.image_url,
+                        })}
+                      >
                         {recipe.image_url ? (
                           <Image source={{ uri: recipe.image_url }} style={styles.discoverCardImage} resizeMode="cover" />
                         ) : (

@@ -22,6 +22,7 @@ import ProfileScreen from './src/screens/profile/ProfileScreen';
 // Detail screen components
 import RecipeDetailScreen from './src/screens/recipes/RecipeDetailScreen';
 import RecipeFormScreen from './src/screens/recipes/RecipeFormScreen';
+import ExternalRecipeDetailScreen from './src/screens/recipes/ExternalRecipeDetailScreen';
 import AddMealScreen from './src/screens/meal-plans/AddMealScreen';
 import ShoppingListDetailScreen from './src/screens/shopping-lists/ShoppingListDetailScreen';
 
@@ -66,6 +67,8 @@ function DetailScreenRenderer({ screenName, params }: { screenName: string; para
       return <RecipeDetailScreen route={route as any} />;
     case 'RecipeForm':
       return <RecipeFormScreen route={route as any} />;
+    case 'ExternalRecipeDetail':
+      return <ExternalRecipeDetailScreen route={route as any} />;
     case 'AddMeal':
       return <AddMealScreen route={route as any} />;
     case 'ShoppingListDetail':

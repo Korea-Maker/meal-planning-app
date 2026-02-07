@@ -10,6 +10,7 @@ import type {
   UpdateRecipeRequest,
   DiscoverRecipesResponse,
   ExternalRecipePreview,
+  ExternalRecipeDetail,
 } from '@meal-planning/shared-types';
 
 const RECIPES_KEY = 'recipes';
@@ -178,5 +179,20 @@ export function useExternalCuisines() {
       return response.data;
     },
     staleTime: 1000 * 60 * 60,
+  });
+}
+
+export function useExternalRecipeDetail(source: string, externalId: string, options?: UseRecipeOptions) {
+  const isEnabled = options?.enabled !== undefined ? options.enabled : Boolean(source && externalId);
+
+  return useQuery({
+    queryKey: [EXTERNAL_RECIPES_KEY, 'detail', source, externalId],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<ExternalRecipeDetail>>(
+        `/recipes/external/${encodeURIComponent(source)}/${encodeURIComponent(externalId)}`
+      );
+      return response.data;
+    },
+    enabled: isEnabled,
   });
 }

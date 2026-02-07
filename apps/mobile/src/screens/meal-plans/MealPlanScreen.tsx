@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,9 @@ import {
   ViewStyle,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import {
   useWeekMealPlan,
@@ -16,8 +18,11 @@ import {
   useAddMealSlot,
   useDeleteMealSlot,
   useGenerateShoppingList,
+  useDiscoverRecipes,
 } from '../../hooks';
+import { api } from '../../api/client';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
+import type { ApiResponse, MealPlanWithSlots, ExternalRecipePreview } from '@meal-planning/shared-types';
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -28,6 +33,15 @@ const MEAL_TYPES: Array<{ key: MealKey; label: string; emoji: string }> = [
   { key: 'lunch', label: '점심', emoji: '☀️' },
   { key: 'dinner', label: '저녁', emoji: '🌙' },
   { key: 'snack', label: '간식', emoji: '🍪' },
+];
+
+const CUISINES = [
+  { value: '', label: '전체 요리' },
+  { value: 'Korean', label: '한식' },
+  { value: 'Japanese', label: '일식' },
+  { value: 'Chinese', label: '중식' },
+  { value: 'Italian', label: '이탈리안' },
+  { value: 'Mexican', label: '멕시칸' },
 ];
 
 const mealSlotStyles: Record<MealKey, ViewStyle> = {
@@ -80,6 +94,105 @@ export default function MealPlanScreen() {
   const addMealSlot = useAddMealSlot();
   const deleteMealSlot = useDeleteMealSlot();
   const generateShoppingList = useGenerateShoppingList();
+  const queryClient = useQueryClient();
+
+  // Auto-fill state
+  const [autoFillModalVisible, setAutoFillModalVisible] = useState(false);
+  const [selectedMealTypes, setSelectedMealTypes] = useState<MealKey[]>(['lunch', 'dinner']);
+  const [selectedCuisine, setSelectedCuisine] = useState('');
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
+
+  // Fetch discover recipes when cuisine is selected (or default)
+  const discoverParams = autoFillModalVisible ? (selectedCuisine ? { cuisine: selectedCuisine } : {}) : undefined;
+  const { data: discoverData } = useDiscoverRecipes(discoverParams);
+
+  const toggleMealType = useCallback((mealType: MealKey) => {
+    setSelectedMealTypes((prev) =>
+      prev.includes(mealType)
+        ? prev.filter((t) => t !== mealType)
+        : [...prev, mealType]
+    );
+  }, []);
+
+  const handleAutoFill = useCallback(async () => {
+    if (selectedMealTypes.length === 0) {
+      Alert.alert('알림', '식사 시간대를 선택해주세요.');
+      return;
+    }
+
+    const recipes: ExternalRecipePreview[] = [
+      ...(discoverData?.korean_seed || []),
+      ...(discoverData?.spoonacular || []),
+      ...(discoverData?.themealdb || []),
+    ];
+
+    if (recipes.length === 0) {
+      Alert.alert('알림', '추천 레시피가 없습니다. 다시 시도해주세요.');
+      return;
+    }
+
+    setIsAutoFilling(true);
+
+    try {
+      // Find empty slots for the current week (skip past dates)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const existingKeys = new Set(
+        (mealPlan?.slots || []).map((s) => `${s.date}-${s.meal_type}`)
+      );
+
+      const slotsToFill: Array<{ date: string; meal_type: MealKey }> = [];
+
+      for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+        const dayDate = new Date(weekStartDate);
+        dayDate.setDate(weekStartDate.getDate() + dayOffset);
+
+        // Skip past dates
+        if (dayDate < today) continue;
+
+        const dateStr = dayDate.toISOString().split('T')[0];
+        for (const mealType of selectedMealTypes) {
+          const key = `${dateStr}-${mealType}`;
+          if (!existingKeys.has(key)) {
+            slotsToFill.push({ date: dateStr, meal_type: mealType });
+          }
+        }
+      }
+
+      if (slotsToFill.length === 0) {
+        Alert.alert('알림', '채울 빈 슬롯이 없습니다.');
+        setAutoFillModalVisible(false);
+        setIsAutoFilling(false);
+        return;
+      }
+
+      // Build quick plan slots
+      const quickPlanSlots = slotsToFill.map((slot, idx) => ({
+        source: recipes[idx % recipes.length].source,
+        external_id: recipes[idx % recipes.length].external_id,
+        date: slot.date,
+        meal_type: slot.meal_type,
+        servings: 2,
+      }));
+
+      await api.post<ApiResponse<MealPlanWithSlots>>('/meal-plans/quick-plan', {
+        week_start_date: weekStartDateISO,
+        slots: quickPlanSlots,
+      });
+
+      // Invalidate caches
+      queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+
+      setAutoFillModalVisible(false);
+      Alert.alert('완료', `${quickPlanSlots.length}개의 레시피가 추가되었습니다!`);
+    } catch {
+      Alert.alert('오류', '자동 채우기에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsAutoFilling(false);
+    }
+  }, [selectedMealTypes, discoverData, mealPlan, weekStartDate, weekStartDateISO, queryClient]);
 
   // Helper functions
   const formatDate = (date: Date) => {
@@ -210,7 +323,104 @@ export default function MealPlanScreen() {
         <Text style={styles.weekTitle}>
           {weekStartDate.getMonth() + 1}월 {weekStartDate.getDate()}일 - {weekDates[6].getMonth() + 1}월 {weekDates[6].getDate()}일
         </Text>
+        <TouchableOpacity
+          style={styles.autoFillButton}
+          onPress={() => setAutoFillModalVisible(true)}
+        >
+          <Text style={styles.autoFillButtonText}>✨ 추천으로 채우기</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Auto-fill Modal */}
+      <Modal
+        visible={autoFillModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAutoFillModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>✨ 추천으로 자동 채우기</Text>
+
+            {/* Meal type selection */}
+            <Text style={styles.modalSectionLabel}>채울 식사 시간대</Text>
+            <View style={styles.mealTypeGrid}>
+              {MEAL_TYPES.map((mt) => (
+                <TouchableOpacity
+                  key={mt.key}
+                  style={[
+                    styles.mealTypeChip,
+                    selectedMealTypes.includes(mt.key) && styles.mealTypeChipSelected,
+                  ]}
+                  onPress={() => toggleMealType(mt.key)}
+                >
+                  <Text
+                    style={[
+                      styles.mealTypeChipText,
+                      selectedMealTypes.includes(mt.key) && styles.mealTypeChipTextSelected,
+                    ]}
+                  >
+                    {mt.emoji} {mt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Cuisine selection */}
+            <Text style={styles.modalSectionLabel}>요리 종류</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cuisineScroll}>
+              {CUISINES.map((c) => (
+                <TouchableOpacity
+                  key={c.value}
+                  style={[
+                    styles.cuisineChip,
+                    selectedCuisine === c.value && styles.cuisineChipSelected,
+                  ]}
+                  onPress={() => setSelectedCuisine(c.value)}
+                >
+                  <Text
+                    style={[
+                      styles.cuisineChipText,
+                      selectedCuisine === c.value && styles.cuisineChipTextSelected,
+                    ]}
+                  >
+                    {c.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={styles.modalHelpText}>
+              빈 슬롯에 추천 레시피가 자동으로 채워집니다.{'\n'}이미 레시피가 있는 슬롯은 건너뜁니다.
+            </Text>
+
+            {/* Action buttons */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setAutoFillModalVisible(false)}
+                disabled={isAutoFilling}
+              >
+                <Text style={styles.modalCancelButtonText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalFillButton,
+                  (selectedMealTypes.length === 0 || isAutoFilling) && styles.modalFillButtonDisabled,
+                ]}
+                onPress={handleAutoFill}
+                disabled={selectedMealTypes.length === 0 || isAutoFilling}
+              >
+                {isAutoFilling ? (
+                  <ActivityIndicator size="small" color={colors.textLight} />
+                ) : (
+                  <Text style={styles.modalFillButtonText}>✨ 자동 채우기</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Calendar Grid */}
       <ScrollView style={styles.calendarContainer} showsVerticalScrollIndicator={false}>
@@ -437,6 +647,137 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   generateButtonText: {
+    ...typography.button,
+    color: colors.textLight,
+  },
+  // Auto-fill button
+  autoFillButton: {
+    marginTop: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.primaryLight,
+    borderRadius: borderRadius.lg,
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  autoFillButtonText: {
+    ...typography.labelSmall,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.card,
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
+    padding: spacing.xl,
+    paddingBottom: spacing['3xl'],
+  },
+  modalTitle: {
+    ...typography.h4,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+  },
+  modalSectionLabel: {
+    ...typography.label,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  mealTypeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  mealTypeChip: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  mealTypeChipSelected: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
+  mealTypeChipText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  mealTypeChipTextSelected: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  cuisineScroll: {
+    marginBottom: spacing.lg,
+  },
+  cuisineChip: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    marginRight: spacing.sm,
+  },
+  cuisineChipSelected: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
+  cuisineChipText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  cuisineChipTextSelected: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  modalHelpText: {
+    ...typography.caption,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+    lineHeight: 18,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  modalCancelButtonText: {
+    ...typography.button,
+    color: colors.textSecondary,
+  },
+  modalFillButton: {
+    flex: 2,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    ...shadow.md,
+  },
+  modalFillButtonDisabled: {
+    backgroundColor: colors.textMuted,
+    opacity: 0.5,
+  },
+  modalFillButtonText: {
     ...typography.button,
     color: colors.textLight,
   },

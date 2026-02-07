@@ -125,15 +125,21 @@ class ExternalRecipeService:
             logger.error(f"TheMealDB discover error: {e}")
 
         # Translate English sources (Spoonacular, TheMealDB) to Korean
+        # Note: TheMealDB titles are proper food names that should NOT be translated
+        # (e.g., "Pad Thai", "Teriyaki Chicken") - DeepL mistranslates them
         if self.translation.is_configured:
             if results["spoonacular"]:
                 results["spoonacular"] = await self.translation.translate_recipes_batch(
                     results["spoonacular"]
                 )
             if results["themealdb"]:
+                original_titles = [r.get("title") for r in results["themealdb"]]
                 results["themealdb"] = await self.translation.translate_recipes_batch(
                     results["themealdb"]
                 )
+                for recipe, original_title in zip(results["themealdb"], original_titles):
+                    if original_title:
+                        recipe["title"] = original_title
 
         results["total"] = (
             len(results["spoonacular"]) + len(results["themealdb"]) + len(results["korean_seed"])
@@ -214,13 +220,16 @@ class ExternalRecipeService:
         await self._increment_rate_limit(user_id)
 
         # Translate English results to Korean
+        # TheMealDB titles are proper food names - preserve them from mistranslation
         if self.translation.is_configured and results:
-            # Filter English source results for translation
             translated_results = []
             for recipe in results:
-                source = recipe.get("source")
-                if source in ("spoonacular", "themealdb"):
+                recipe_source = recipe.get("source")
+                if recipe_source in ("spoonacular", "themealdb"):
+                    original_title = recipe.get("title") if recipe_source == "themealdb" else None
                     translated = await self.translation.translate_recipe(recipe)
+                    if original_title:
+                        translated["title"] = original_title
                     translated_results.append(translated)
                 else:
                     translated_results.append(recipe)
@@ -269,8 +278,12 @@ class ExternalRecipeService:
 
         if result:
             # Translate English sources to Korean
+            # Preserve TheMealDB titles - they are proper food names
             if self.translation.is_configured and source in ("spoonacular", "themealdb"):
+                original_title = result.get("title") if source == "themealdb" else None
                 result = await self.translation.translate_recipe(result)
+                if original_title:
+                    result["title"] = original_title
             await self._cache_result(cache_key, result)
 
         return result

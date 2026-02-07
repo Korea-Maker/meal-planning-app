@@ -12,6 +12,7 @@ const ROUTE_TO_TAB: Record<string, TabName> = {
   RecipeList: 'recipes',
   RecipeDetail: 'recipes',
   RecipeForm: 'recipes',
+  ExternalRecipeDetail: 'recipes',
   MealPlanCalendar: 'mealplans',
   AddMeal: 'mealplans',
   ShoppingLists: 'shopping',

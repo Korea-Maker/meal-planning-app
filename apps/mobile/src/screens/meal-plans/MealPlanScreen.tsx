@@ -103,7 +103,7 @@ export default function MealPlanScreen() {
 
   // Fetch discover recipes when cuisine is selected (or default)
   const discoverParams = autoFillModalVisible ? (selectedCuisine ? { cuisine: selectedCuisine } : {}) : undefined;
-  const { data: discoverData } = useDiscoverRecipes(discoverParams);
+  const { data: discoverData, isLoading: isDiscoverLoading, isFetching: isDiscoverFetching } = useDiscoverRecipes(discoverParams);
 
   const toggleMealType = useCallback((mealType: MealKey) => {
     setSelectedMealTypes((prev) =>
@@ -119,6 +119,11 @@ export default function MealPlanScreen() {
       return;
     }
 
+    if (isDiscoverLoading || isDiscoverFetching) {
+      Alert.alert('알림', '추천 레시피를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
     const recipes: ExternalRecipePreview[] = [
       ...(discoverData?.korean_seed || []),
       ...(discoverData?.spoonacular || []),
@@ -126,7 +131,7 @@ export default function MealPlanScreen() {
     ];
 
     if (recipes.length === 0) {
-      Alert.alert('알림', '추천 레시피가 없습니다. 다시 시도해주세요.');
+      Alert.alert('알림', '추천 레시피가 없습니다. 다른 요리 종류를 선택해보세요.');
       return;
     }
 
@@ -191,7 +196,7 @@ export default function MealPlanScreen() {
     } finally {
       setIsAutoFilling(false);
     }
-  }, [selectedMealTypes, discoverData, mealPlan, weekStartDate, weekStartDateISO, quickPlan]);
+  }, [selectedMealTypes, discoverData, mealPlan, weekStartDate, weekStartDateISO, quickPlan, isDiscoverLoading, isDiscoverFetching]);
 
   // Helper functions
   const formatDate = (date: Date) => {
@@ -405,13 +410,15 @@ export default function MealPlanScreen() {
               <TouchableOpacity
                 style={[
                   styles.modalFillButton,
-                  (selectedMealTypes.length === 0 || isAutoFilling) && styles.modalFillButtonDisabled,
+                  (selectedMealTypes.length === 0 || isAutoFilling || isDiscoverFetching) && styles.modalFillButtonDisabled,
                 ]}
                 onPress={handleAutoFill}
-                disabled={selectedMealTypes.length === 0 || isAutoFilling}
+                disabled={selectedMealTypes.length === 0 || isAutoFilling || isDiscoverFetching}
               >
                 {isAutoFilling ? (
                   <ActivityIndicator size="small" color={colors.textLight} />
+                ) : isDiscoverFetching ? (
+                  <Text style={styles.modalFillButtonText}>레시피 불러오는 중...</Text>
                 ) : (
                   <Text style={styles.modalFillButtonText}>✨ 자동 채우기</Text>
                 )}

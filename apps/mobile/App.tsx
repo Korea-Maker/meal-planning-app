@@ -69,6 +69,8 @@ function DetailScreenRenderer({ screenName, params }: { screenName: string; para
       return <RecipeFormScreen route={route as any} />;
     case 'ExternalRecipeDetail':
       return <ExternalRecipeDetailScreen route={route as any} />;
+    case 'MealPlanRecipeDetail':
+      return <RecipeDetailScreen route={route as any} />;
     case 'AddMeal':
       return <AddMealScreen route={route as any} />;
     case 'ShoppingListDetail':

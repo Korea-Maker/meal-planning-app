@@ -21,12 +21,15 @@ import {
   useRateRecipe,
   useUpdateRating,
   useDeleteRating,
+  useDeleteMealSlot,
 } from '../../hooks';
 
 interface RecipeDetailScreenProps {
   route: {
     params: {
       recipeId: string;
+      mealPlanId?: string;
+      slotId?: string;
     };
   };
 }
@@ -35,7 +38,8 @@ type TabType = 'ingredients' | 'instructions' | 'reviews';
 
 export default function RecipeDetailScreen({ route }: RecipeDetailScreenProps) {
   const navigation = useSimpleNavigation();
-  const { recipeId } = route.params;
+  const { recipeId, mealPlanId, slotId } = route.params;
+  const isFromMealPlan = Boolean(mealPlanId && slotId);
   const [activeTab, setActiveTab] = useState<TabType>('ingredients');
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
   const [showRatingForm, setShowRatingForm] = useState(false);
@@ -53,6 +57,7 @@ export default function RecipeDetailScreen({ route }: RecipeDetailScreenProps) {
   const rateRecipeMutation = useRateRecipe(recipeId);
   const updateRatingMutation = useUpdateRating(recipeId, myRating?.id || '');
   const deleteRatingMutation = useDeleteRating(recipeId, myRating?.id || '');
+  const deleteMealSlot = useDeleteMealSlot();
 
   const isLoading = recipeLoading || statsLoading || myRatingLoading || favoriteLoading;
 
@@ -111,6 +116,29 @@ export default function RecipeDetailScreen({ route }: RecipeDetailScreenProps) {
     ]);
   };
 
+  const handleRemoveFromMealPlan = () => {
+    if (!mealPlanId || !slotId) return;
+    Alert.alert(
+      '식사 계획에서 삭제',
+      '이 레시피를 식사 계획에서 삭제하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteMealSlot.mutateAsync({ mealPlanId, slotId });
+              navigation.goBack();
+            } catch {
+              Alert.alert('오류', '식사 계획에서 삭제하는데 실패했습니다.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleEditRating = () => {
     if (myRating) {
       setRatingValue(myRating.rating);
@@ -150,6 +178,17 @@ export default function RecipeDetailScreen({ route }: RecipeDetailScreenProps) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backButtonText}>← 뒤로</Text>
         </TouchableOpacity>
+        {isFromMealPlan && (
+          <TouchableOpacity
+            onPress={handleRemoveFromMealPlan}
+            style={styles.mealPlanDeleteButton}
+            disabled={deleteMealSlot.isPending}
+          >
+            <Text style={styles.mealPlanDeleteButtonText}>
+              {deleteMealSlot.isPending ? '삭제 중...' : '🗑 계획에서 삭제'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -449,12 +488,24 @@ const styles = StyleSheet.create({
   backHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     ...shadow.sm,
+  },
+  mealPlanDeleteButton: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.error,
+  },
+  mealPlanDeleteButtonText: {
+    ...typography.labelSmall,
+    color: colors.textLight,
+    fontWeight: '600',
   },
   backButton: {
     paddingVertical: spacing.sm,

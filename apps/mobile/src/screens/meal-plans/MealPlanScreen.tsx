@@ -98,6 +98,10 @@ export default function MealPlanScreen() {
   const generateShoppingList = useGenerateShoppingList();
   const quickPlan = useQuickPlan();
 
+  // Edit mode state
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedSlotIds, setSelectedSlotIds] = useState<Set<string>>(new Set());
+
   // Auto-fill state
   const [autoFillModalVisible, setAutoFillModalVisible] = useState(false);
   const [selectedMealTypes, setSelectedMealTypes] = useState<MealKey[]>(['lunch', 'dinner']);
@@ -256,36 +260,102 @@ export default function MealPlanScreen() {
     }
   };
 
-  // Handle tapping a filled slot - show action options
-  const handleSlotPress = (date: Date, mealType: MealKey, slot: { id: string; recipe: { title: string } } | null | undefined) => {
+  // Handle tapping a slot
+  const handleSlotPress = (date: Date, mealType: MealKey, slot: { id: string; recipe: { id: string; title: string } } | null | undefined) => {
+    if (isEditMode && slot) {
+      // Edit mode - toggle selection
+      setSelectedSlotIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(slot.id)) {
+          next.delete(slot.id);
+        } else {
+          next.add(slot.id);
+        }
+        return next;
+      });
+      return;
+    }
+
     if (slot) {
-      // Filled slot - show action sheet with delete option
-      Alert.alert(
-        slot.recipe.title,
-        '이 식사를 어떻게 하시겠습니까?',
-        [
-          { text: '취소', style: 'cancel' },
-          {
-            text: '삭제',
-            style: 'destructive',
-            onPress: async () => {
-              if (!mealPlan) return;
-              try {
-                await deleteMealSlot.mutateAsync({
-                  mealPlanId: mealPlan.id,
-                  slotId: slot.id,
-                });
-              } catch {
-                Alert.alert('오류', '식사를 삭제하는데 실패했습니다.');
-              }
-            },
-          },
-        ]
-      );
+      // Filled slot - navigate to recipe detail (stays in mealplans tab)
+      navigation.navigate('MealPlanRecipeDetail', {
+        recipeId: slot.recipe.id,
+        mealPlanId: mealPlan?.id,
+        slotId: slot.id,
+      });
     } else {
       // Empty slot - navigate to add meal
       handleAddMeal(date, mealType);
     }
+  };
+
+  // Handle long press on filled slot - show delete confirmation
+  const handleSlotLongPress = (slot: { id: string; recipe: { title: string } }) => {
+    if (isEditMode) return;
+    if (!mealPlan) return;
+
+    Alert.alert(
+      slot.recipe.title,
+      '이 식사를 삭제하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteMealSlot.mutateAsync({
+                mealPlanId: mealPlan.id,
+                slotId: slot.id,
+              });
+            } catch {
+              Alert.alert('오류', '식사를 삭제하는데 실패했습니다.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Edit mode handlers
+  const toggleEditMode = () => {
+    setIsEditMode((prev) => !prev);
+    setSelectedSlotIds(new Set());
+  };
+
+  const selectAllSlots = () => {
+    if (!mealPlan?.slots) return;
+    setSelectedSlotIds(new Set(mealPlan.slots.map((s) => s.id)));
+  };
+
+  const deleteSelectedSlots = () => {
+    if (!mealPlan || selectedSlotIds.size === 0) return;
+
+    Alert.alert(
+      '선택 삭제',
+      `${selectedSlotIds.size}개의 식사를 삭제하시겠습니까?`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              for (const slotId of selectedSlotIds) {
+                await deleteMealSlot.mutateAsync({
+                  mealPlanId: mealPlan.id,
+                  slotId,
+                });
+              }
+              setSelectedSlotIds(new Set());
+              setIsEditMode(false);
+            } catch {
+              Alert.alert('오류', '일부 식사를 삭제하는데 실패했습니다.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Handle generating shopping list
@@ -339,15 +409,45 @@ export default function MealPlanScreen() {
     <View style={styles.container}>
       {/* Week Header */}
       <View style={styles.weekHeader}>
-        <Text style={styles.weekTitle}>
-          {weekStartDate.getMonth() + 1}월 {weekStartDate.getDate()}일 - {weekDates[6].getMonth() + 1}월 {weekDates[6].getDate()}일
-        </Text>
-        <TouchableOpacity
-          style={styles.autoFillButton}
-          onPress={() => setAutoFillModalVisible(true)}
-        >
-          <Text style={styles.autoFillButtonText}>✨ 추천으로 채우기</Text>
-        </TouchableOpacity>
+        <View style={styles.weekHeaderRow}>
+          <Text style={styles.weekTitle}>
+            {weekStartDate.getMonth() + 1}월 {weekStartDate.getDate()}일 - {weekDates[6].getMonth() + 1}월 {weekDates[6].getDate()}일
+          </Text>
+          {mealPlan && mealPlan.slots.length > 0 && (
+            <TouchableOpacity
+              style={[styles.editModeButton, isEditMode && styles.editModeButtonActive]}
+              onPress={toggleEditMode}
+            >
+              <Text style={[styles.editModeButtonText, isEditMode && styles.editModeButtonTextActive]}>
+                {isEditMode ? '완료' : '편집'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        {!isEditMode && (
+          <TouchableOpacity
+            style={styles.autoFillButton}
+            onPress={() => setAutoFillModalVisible(true)}
+          >
+            <Text style={styles.autoFillButtonText}>✨ 추천으로 채우기</Text>
+          </TouchableOpacity>
+        )}
+        {isEditMode && (
+          <View style={styles.editActions}>
+            <TouchableOpacity style={styles.editActionButton} onPress={selectAllSlots}>
+              <Text style={styles.editActionText}>전체 선택</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editDeleteButton, selectedSlotIds.size === 0 && styles.editDeleteButtonDisabled]}
+              onPress={deleteSelectedSlots}
+              disabled={selectedSlotIds.size === 0}
+            >
+              <Text style={[styles.editDeleteButtonText, selectedSlotIds.size === 0 && styles.editDeleteButtonTextDisabled]}>
+                🗑 선택 삭제 ({selectedSlotIds.size})
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Auto-fill Modal */}
@@ -481,13 +581,19 @@ export default function MealPlanScreen() {
                     slot && styles.mealSlotFilled,
                   ]}
                   onPress={() => handleSlotPress(date, mealType.key, slot)}
+                  onLongPress={() => slot && handleSlotLongPress(slot)}
                 >
                   {slot ? (
                     <View style={styles.mealSlotContent}>
+                      {isEditMode && (
+                        <View style={[styles.editCheckbox, selectedSlotIds.has(slot.id) && styles.editCheckboxSelected]}>
+                          {selectedSlotIds.has(slot.id) && <Text style={styles.editCheckmark}>✓</Text>}
+                        </View>
+                      )}
                       <Text style={styles.mealSlotTitle} numberOfLines={2}>
                         {slot.recipe.title}
                       </Text>
-                      {slot.recipe.servings && (
+                      {!isEditMode && slot.recipe.servings && (
                         <Text style={styles.mealSlotServings}>{slot.recipe.servings}인분</Text>
                       )}
                     </View>
@@ -559,10 +665,71 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  weekHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   weekTitle: {
     ...typography.h4,
     color: colors.text,
-    textAlign: 'center',
+    flex: 1,
+  },
+  editModeButton: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  editModeButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  editModeButtonText: {
+    ...typography.labelSmall,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  editModeButtonTextActive: {
+    color: colors.textLight,
+  },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    gap: spacing.md,
+  },
+  editActionButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  editActionText: {
+    ...typography.labelSmall,
+    color: colors.textSecondary,
+  },
+  editDeleteButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.error,
+    alignItems: 'center',
+  },
+  editDeleteButtonDisabled: {
+    backgroundColor: colors.textMuted,
+    opacity: 0.5,
+  },
+  editDeleteButtonText: {
+    ...typography.labelSmall,
+    color: colors.textLight,
+    fontWeight: '600',
+  },
+  editDeleteButtonTextDisabled: {
+    color: colors.textLight,
   },
   calendarContainer: {
     flex: 1,
@@ -800,5 +967,24 @@ const styles = StyleSheet.create({
   modalFillButtonText: {
     ...typography.button,
     color: colors.textLight,
+  },
+  // Edit mode checkbox styles
+  editCheckbox: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  editCheckboxSelected: {
+    backgroundColor: colors.primary,
+  },
+  editCheckmark: {
+    color: colors.textLight,
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

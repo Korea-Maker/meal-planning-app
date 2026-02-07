@@ -10,7 +10,6 @@ import {
   Alert,
   Modal,
 } from 'react-native';
-import { useQueryClient } from '@tanstack/react-query';
 import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import {
   useWeekMealPlan,
@@ -19,10 +18,10 @@ import {
   useDeleteMealSlot,
   useGenerateShoppingList,
   useDiscoverRecipes,
+  useQuickPlan,
 } from '../../hooks';
-import { api } from '../../api/client';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
-import type { ApiResponse, MealPlanWithSlots, ExternalRecipePreview } from '@meal-planning/shared-types';
+import type { ExternalRecipePreview } from '@meal-planning/shared-types';
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -94,7 +93,7 @@ export default function MealPlanScreen() {
   const addMealSlot = useAddMealSlot();
   const deleteMealSlot = useDeleteMealSlot();
   const generateShoppingList = useGenerateShoppingList();
-  const queryClient = useQueryClient();
+  const quickPlan = useQuickPlan();
 
   // Auto-fill state
   const [autoFillModalVisible, setAutoFillModalVisible] = useState(false);
@@ -151,7 +150,11 @@ export default function MealPlanScreen() {
         // Skip past dates
         if (dayDate < today) continue;
 
-        const dateStr = dayDate.toISOString().split('T')[0];
+        // Use local date format to avoid UTC timezone offset issues (KST+9)
+        const y = dayDate.getFullYear();
+        const m = String(dayDate.getMonth() + 1).padStart(2, '0');
+        const d = String(dayDate.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${d}`;
         for (const mealType of selectedMealTypes) {
           const key = `${dateStr}-${mealType}`;
           if (!existingKeys.has(key)) {
@@ -176,14 +179,10 @@ export default function MealPlanScreen() {
         servings: 2,
       }));
 
-      await api.post<ApiResponse<MealPlanWithSlots>>('/meal-plans/quick-plan', {
+      await quickPlan.mutateAsync({
         week_start_date: weekStartDateISO,
         slots: quickPlanSlots,
       });
-
-      // Invalidate caches
-      queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
 
       setAutoFillModalVisible(false);
       Alert.alert('완료', `${quickPlanSlots.length}개의 레시피가 추가되었습니다!`);
@@ -192,7 +191,7 @@ export default function MealPlanScreen() {
     } finally {
       setIsAutoFilling(false);
     }
-  }, [selectedMealTypes, discoverData, mealPlan, weekStartDate, weekStartDateISO, queryClient]);
+  }, [selectedMealTypes, discoverData, mealPlan, weekStartDate, weekStartDateISO, quickPlan]);
 
   // Helper functions
   const formatDate = (date: Date) => {

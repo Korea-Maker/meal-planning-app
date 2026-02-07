@@ -23,6 +23,7 @@ export {
   useDeleteMealSlot,
   useDeleteMealPlan,
   useGenerateShoppingList,
+  useQuickPlan,
 } from './use-meal-plans';
 
 // Shopping list hooks

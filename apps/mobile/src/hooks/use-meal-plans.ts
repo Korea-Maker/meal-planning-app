@@ -126,6 +126,21 @@ export function useDeleteMealPlan() {
   });
 }
 
+export function useQuickPlan() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { week_start_date: string; slots: Array<{ source: string; external_id: string; date: string; meal_type: string; servings: number }> }) => {
+      const response = await api.post<ApiResponse<MealPlanWithSlots>>('/meal-plans/quick-plan', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [MEAL_PLANS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    },
+  });
+}
+
 export function useGenerateShoppingList() {
   const queryClient = useQueryClient();
 

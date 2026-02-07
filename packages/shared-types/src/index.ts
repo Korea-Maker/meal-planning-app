@@ -303,7 +303,7 @@ export interface NutritionInfo {
 }
 
 // External Recipe Types
-export type ExternalRecipeSource = 'spoonacular' | 'themealdb'
+export type ExternalRecipeSource = 'spoonacular' | 'themealdb' | 'korean_seed' | 'foodsafetykorea' | 'mafra'
 
 export interface ExternalRecipePreview {
   source: ExternalRecipeSource

@@ -8,6 +8,8 @@ export {
   useAdjustServings,
   useBrowseRecipes,
   useBrowseRecipeDetail,
+  useDiscoverRecipes,
+  useExternalCuisines,
 } from './use-recipes';
 
 // Meal plan hooks

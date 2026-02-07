@@ -10,9 +10,10 @@ import {
   TextInput,
   RefreshControl,
   Image,
+  ScrollView,
 } from 'react-native';
 import type { Recipe } from '@meal-planning/shared-types';
-import { useRecipes, useBrowseRecipes } from '../../hooks';
+import { useRecipes, useBrowseRecipes, useDiscoverRecipes, useExternalCuisines } from '../../hooks/use-recipes';
 import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 
@@ -39,7 +40,19 @@ const badgeStyles: Record<DifficultyKey, ViewStyle> = {
 export default function RecipeListScreen() {
   const navigation = useSimpleNavigation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeSection, setActiveSection] = useState<'browse' | 'mine'>('browse');
+  const [activeSection, setActiveSection] = useState<'discover' | 'browse' | 'mine'>('discover');
+  const [discoverCuisine, setDiscoverCuisine] = useState<string>('');
+  const [discoverCategory, setDiscoverCategory] = useState<string>('');
+
+  const { data: discoverData, isLoading: isDiscoverLoading, refetch: refetchDiscover } = useDiscoverRecipes(
+    activeSection === 'discover' ? {
+      cuisine: discoverCuisine || undefined,
+      category: discoverCategory || undefined,
+      number: 12
+    } : undefined
+  );
+
+  const { data: cuisines } = useExternalCuisines();
 
   const browseResult = useBrowseRecipes(
     activeSection === 'browse' ? (searchQuery ? { query: searchQuery } : undefined) : undefined
@@ -134,39 +147,22 @@ export default function RecipeListScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="레시피 검색..."
-            placeholderTextColor={colors.textMuted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setSearchQuery('')}
-              style={styles.clearButton}
-            >
-              <Text style={styles.clearButtonText}>✕</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
       {/* Segment Control */}
       <View style={styles.segmentContainer}>
+        <TouchableOpacity
+          style={[styles.segmentButton, activeSection === 'discover' && styles.segmentButtonActive]}
+          onPress={() => setActiveSection('discover')}
+        >
+          <Text style={[styles.segmentText, activeSection === 'discover' && styles.segmentTextActive]}>
+            추천
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.segmentButton, activeSection === 'browse' && styles.segmentButtonActive]}
           onPress={() => setActiveSection('browse')}
         >
           <Text style={[styles.segmentText, activeSection === 'browse' && styles.segmentTextActive]}>
-            전체 레시피
+            전체
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -179,8 +175,179 @@ export default function RecipeListScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Recipe List */}
-      <FlatList
+      {/* Discover Section */}
+      {activeSection === 'discover' && (
+        <View style={styles.discoverContainer}>
+          {/* Cuisine/Category Filter Row */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
+            <TouchableOpacity
+              style={[styles.filterChip, !discoverCuisine && styles.filterChipActive]}
+              onPress={() => setDiscoverCuisine('')}
+            >
+              <Text style={[styles.filterChipText, !discoverCuisine && styles.filterChipTextActive]}>전체</Text>
+            </TouchableOpacity>
+            {['Korean', 'Japanese', 'Chinese', 'Italian', 'Mexican', 'American'].map((cuisine) => (
+              <TouchableOpacity
+                key={cuisine}
+                style={[styles.filterChip, discoverCuisine === cuisine && styles.filterChipActive]}
+                onPress={() => setDiscoverCuisine(discoverCuisine === cuisine ? '' : cuisine)}
+              >
+                <Text style={[styles.filterChipText, discoverCuisine === cuisine && styles.filterChipTextActive]}>
+                  {cuisine === 'Korean' ? '한식' : cuisine === 'Japanese' ? '일식' : cuisine === 'Chinese' ? '중식' : cuisine === 'Italian' ? '이탈리안' : cuisine === 'Mexican' ? '멕시칸' : '미국'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Category Filter */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
+            <TouchableOpacity
+              style={[styles.filterChip, !discoverCategory && styles.filterChipActive]}
+              onPress={() => setDiscoverCategory('')}
+            >
+              <Text style={[styles.filterChipText, !discoverCategory && styles.filterChipTextActive]}>전체</Text>
+            </TouchableOpacity>
+            {[
+              { key: 'breakfast', label: '아침' },
+              { key: 'lunch', label: '점심' },
+              { key: 'dinner', label: '저녁' },
+              { key: 'dessert', label: '디저트' },
+              { key: 'vegetarian', label: '채식' },
+            ].map((cat) => (
+              <TouchableOpacity
+                key={cat.key}
+                style={[styles.filterChip, discoverCategory === cat.key && styles.filterChipActive]}
+                onPress={() => setDiscoverCategory(discoverCategory === cat.key ? '' : cat.key)}
+              >
+                <Text style={[styles.filterChipText, discoverCategory === cat.key && styles.filterChipTextActive]}>
+                  {cat.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Discover Results */}
+          {isDiscoverLoading ? (
+            <View style={styles.discoverLoading}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.loadingText}>추천 레시피를 불러오는 중...</Text>
+            </View>
+          ) : discoverData ? (
+            <ScrollView style={styles.discoverResults} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+              {/* Korean Seed Recipes */}
+              {discoverData.korean_seed && discoverData.korean_seed.length > 0 && (
+                <View style={styles.sourceSection}>
+                  <Text style={styles.sourceTitle}>🇰🇷 한식 레시피</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {discoverData.korean_seed.map((recipe) => (
+                      <TouchableOpacity key={`kr-${recipe.external_id}`} style={styles.discoverCard}>
+                        {recipe.image_url ? (
+                          <Image source={{ uri: recipe.image_url }} style={styles.discoverCardImage} resizeMode="cover" />
+                        ) : (
+                          <View style={[styles.discoverCardImage, styles.discoverCardPlaceholder]}>
+                            <Text style={{ fontSize: 32 }}>🍲</Text>
+                          </View>
+                        )}
+                        <Text style={styles.discoverCardTitle} numberOfLines={2}>{recipe.title}</Text>
+                        {recipe.ready_in_minutes && (
+                          <Text style={styles.discoverCardMeta}>⏱ {recipe.ready_in_minutes}분</Text>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              {/* Spoonacular */}
+              {discoverData.spoonacular && discoverData.spoonacular.length > 0 && (
+                <View style={styles.sourceSection}>
+                  <Text style={styles.sourceTitle}>🌍 Spoonacular 추천</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {discoverData.spoonacular.map((recipe) => (
+                      <TouchableOpacity key={`sp-${recipe.external_id}`} style={styles.discoverCard}>
+                        {recipe.image_url ? (
+                          <Image source={{ uri: recipe.image_url }} style={styles.discoverCardImage} resizeMode="cover" />
+                        ) : (
+                          <View style={[styles.discoverCardImage, styles.discoverCardPlaceholder]}>
+                            <Text style={{ fontSize: 32 }}>🍽</Text>
+                          </View>
+                        )}
+                        <Text style={styles.discoverCardTitle} numberOfLines={2}>{recipe.title}</Text>
+                        {recipe.ready_in_minutes && (
+                          <Text style={styles.discoverCardMeta}>⏱ {recipe.ready_in_minutes}분</Text>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              {/* TheMealDB */}
+              {discoverData.themealdb && discoverData.themealdb.length > 0 && (
+                <View style={styles.sourceSection}>
+                  <Text style={styles.sourceTitle}>🍴 TheMealDB 추천</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {discoverData.themealdb.map((recipe) => (
+                      <TouchableOpacity key={`mdb-${recipe.external_id}`} style={styles.discoverCard}>
+                        {recipe.image_url ? (
+                          <Image source={{ uri: recipe.image_url }} style={styles.discoverCardImage} resizeMode="cover" />
+                        ) : (
+                          <View style={[styles.discoverCardImage, styles.discoverCardPlaceholder]}>
+                            <Text style={{ fontSize: 32 }}>🥘</Text>
+                          </View>
+                        )}
+                        <Text style={styles.discoverCardTitle} numberOfLines={2}>{recipe.title}</Text>
+                        {recipe.ready_in_minutes && (
+                          <Text style={styles.discoverCardMeta}>⏱ {recipe.ready_in_minutes}분</Text>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              {discoverData.total === 0 && (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyIcon}>🔍</Text>
+                  <Text style={styles.emptyTitle}>추천 레시피가 없습니다</Text>
+                  <Text style={styles.emptySubtitle}>필터를 변경해 보세요</Text>
+                </View>
+              )}
+            </ScrollView>
+          ) : null}
+        </View>
+      )}
+
+      {/* Search Bar and Recipe List - Only for browse/mine tabs */}
+      {activeSection !== 'discover' && (
+        <>
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBar}>
+              <Text style={styles.searchIcon}>🔍</Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="레시피 검색..."
+                placeholderTextColor={colors.textMuted}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearchQuery('')}
+                  style={styles.clearButton}
+                >
+                  <Text style={styles.clearButtonText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Recipe List */}
+          <FlatList
         data={recipes}
         renderItem={renderRecipeItem}
         keyExtractor={(item) => String(item.id)}
@@ -217,13 +384,15 @@ export default function RecipeListScreen() {
         }
       />
 
-      {/* FAB for adding recipe */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate('RecipeForm', {})}
-      >
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
+          {/* FAB for adding recipe */}
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => navigation.navigate('RecipeForm', {})}
+          >
+            <Text style={styles.fabText}>+</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
@@ -430,5 +599,82 @@ const styles = StyleSheet.create({
   },
   segmentTextActive: {
     color: colors.textLight,
+  },
+  discoverContainer: {
+    flex: 1,
+  },
+  filterRow: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    flexGrow: 0,
+  },
+  filterChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.background,
+    marginRight: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterChipText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  filterChipTextActive: {
+    color: colors.textLight,
+    fontWeight: '600',
+  },
+  discoverLoading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing['5xl'],
+  },
+  discoverResults: {
+    flex: 1,
+  },
+  sourceSection: {
+    marginTop: spacing.lg,
+    paddingLeft: spacing.lg,
+  },
+  sourceTitle: {
+    ...typography.h4,
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  discoverCard: {
+    width: 160,
+    marginRight: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+    ...shadow.sm,
+  },
+  discoverCardImage: {
+    width: 160,
+    height: 120,
+  },
+  discoverCardPlaceholder: {
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  discoverCardTitle: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.text,
+    padding: spacing.sm,
+    paddingBottom: spacing.xs,
+  },
+  discoverCardMeta: {
+    ...typography.labelSmall,
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.sm,
   },
 });

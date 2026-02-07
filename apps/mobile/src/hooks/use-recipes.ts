@@ -8,6 +8,8 @@ import type {
   RecipeSearchParams,
   CreateRecipeRequest,
   UpdateRecipeRequest,
+  DiscoverRecipesResponse,
+  ExternalRecipePreview,
 } from '@meal-planning/shared-types';
 
 const RECIPES_KEY = 'recipes';
@@ -138,5 +140,43 @@ export function useBrowseRecipeDetail(id: string, options?: UseRecipeOptions) {
       return response.data;
     },
     enabled: isEnabled,
+  });
+}
+
+const EXTERNAL_RECIPES_KEY = 'external-recipes';
+
+export interface DiscoverParams {
+  category?: string;
+  cuisine?: string;
+  number?: number;
+}
+
+export function useDiscoverRecipes(params?: DiscoverParams) {
+  const parts: string[] = [];
+  if (params?.category) parts.push(`category=${encodeURIComponent(params.category)}`);
+  if (params?.cuisine) parts.push(`cuisine=${encodeURIComponent(params.cuisine)}`);
+  if (params?.number) parts.push(`number=${params.number}`);
+
+  const queryString = parts.join('&');
+  const endpoint = queryString ? `/recipes/discover?${queryString}` : '/recipes/discover';
+
+  return useQuery({
+    queryKey: [EXTERNAL_RECIPES_KEY, 'discover', params],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<DiscoverRecipesResponse>>(endpoint);
+      return response.data;
+    },
+    enabled: params !== undefined,
+  });
+}
+
+export function useExternalCuisines() {
+  return useQuery({
+    queryKey: [EXTERNAL_RECIPES_KEY, 'cuisines'],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<string[]>>('/recipes/external/cuisines');
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 60,
   });
 }

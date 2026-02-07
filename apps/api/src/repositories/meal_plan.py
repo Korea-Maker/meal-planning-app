@@ -126,3 +126,16 @@ class MealPlanRepository(BaseRepository[MealPlan]):
             .order_by(MealSlot.date, MealSlot.meal_type)
         )
         return list(result.scalars().all())
+
+    async def get_all_slots_with_ingredients(
+        self,
+        meal_plan_id: str,
+    ) -> list[MealSlot]:
+        """Get all slots for a meal plan with recipe and ingredients eagerly loaded."""
+        result = await self.session.execute(
+            select(MealSlot)
+            .options(selectinload(MealSlot.recipe).selectinload(Recipe.ingredients))
+            .where(MealSlot.meal_plan_id == meal_plan_id)
+            .order_by(MealSlot.date, MealSlot.meal_type)
+        )
+        return list(result.scalars().all())

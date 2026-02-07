@@ -1,5 +1,4 @@
 from collections import defaultdict
-from datetime import timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -79,7 +78,10 @@ class ShoppingListService:
         meal_plan_id: str,
         name: str | None = None,
     ) -> ShoppingList:
-        meal_plan = await self.meal_plan_repo.get_by_id_with_slots(meal_plan_id)
+        # Use get_by_id (not get_by_id_with_slots) to avoid loading Recipe objects
+        # without ingredients into the SQLAlchemy identity map, which would prevent
+        # the subsequent eager load of ingredients from working correctly.
+        meal_plan = await self.meal_plan_repo.get_by_id(meal_plan_id)
         if not meal_plan:
             raise MealPlanNotFoundError(meal_plan_id)
         if meal_plan.user_id != user_id:
@@ -98,10 +100,12 @@ class ShoppingListService:
             }
         )
 
-        start_date = meal_plan.week_start_date
-        end_date = start_date + timedelta(days=6)
-        slots = await self.meal_plan_repo.get_slots_by_date_range(
-            meal_plan_id, start_date, end_date
+        # Get ALL slots for this meal plan with ingredients eagerly loaded.
+        # Using get_all_slots_with_ingredients instead of date-range query
+        # to avoid missing slots due to frontend (Sunday-start) vs backend
+        # (Monday-start) week start date mismatch.
+        slots = await self.meal_plan_repo.get_all_slots_with_ingredients(
+            meal_plan_id
         )
 
         aggregated = defaultdict(lambda: {"amount": 0, "unit": "", "category": "other"})

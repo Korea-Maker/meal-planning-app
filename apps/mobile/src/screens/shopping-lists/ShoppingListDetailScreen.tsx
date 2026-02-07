@@ -12,7 +12,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
-import { useShoppingList, useCheckShoppingItem, useDeleteShoppingList, useAddShoppingItem } from '../../hooks';
+import { useShoppingList, useCheckShoppingItem, useDeleteShoppingList, useAddShoppingItem, useUpdateShoppingItem, useDeleteShoppingItem } from '../../hooks';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 import type { ShoppingItem } from '@meal-planning/shared-types';
 
@@ -53,12 +53,21 @@ export default function ShoppingListDetailScreen({ route }: ShoppingListDetailSc
   const checkItemMutation = useCheckShoppingItem(listId);
   const deleteShoppingList = useDeleteShoppingList();
   const addShoppingItem = useAddShoppingItem(listId);
+  const updateShoppingItem = useUpdateShoppingItem(listId);
+  const deleteShoppingItem = useDeleteShoppingItem(listId);
 
   // Add item modal state
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [newItemAmount, setNewItemAmount] = useState('');
   const [newItemUnit, setNewItemUnit] = useState('');
+
+  // Edit item modal state
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState<ShoppingItem | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editAmount, setEditAmount] = useState('');
+  const [editUnit, setEditUnit] = useState('');
 
   const handleAddItem = async () => {
     const name = newItemName.trim();
@@ -79,6 +88,58 @@ export default function ShoppingListDetailScreen({ route }: ShoppingListDetailSc
     } catch {
       Alert.alert('오류', '항목을 추가하는데 실패했습니다.');
     }
+  };
+
+  const openEditModal = (item: ShoppingItem) => {
+    setEditingItem(item);
+    setEditName(item.ingredient_name);
+    setEditAmount(String(item.amount));
+    setEditUnit(item.unit);
+    setEditModalVisible(true);
+  };
+
+  const handleEditItem = async () => {
+    if (!editingItem) return;
+    const name = editName.trim();
+    if (!name) {
+      Alert.alert('알림', '재료 이름을 입력해주세요.');
+      return;
+    }
+    try {
+      await updateShoppingItem.mutateAsync({
+        itemId: editingItem.id,
+        data: {
+          ingredient_name: name,
+          amount: parseFloat(editAmount) || 1,
+          unit: editUnit.trim() || '개',
+        },
+      });
+      setEditModalVisible(false);
+      setEditingItem(null);
+    } catch {
+      Alert.alert('오류', '항목을 수정하는데 실패했습니다.');
+    }
+  };
+
+  const handleDeleteItem = (item: ShoppingItem) => {
+    Alert.alert(
+      '항목 삭제',
+      `"${item.ingredient_name}"을(를) 삭제하시겠습니까?`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteShoppingItem.mutateAsync(item.id);
+            } catch {
+              Alert.alert('오류', '항목을 삭제하는데 실패했습니다.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleDeleteList = () => {
@@ -173,10 +234,11 @@ export default function ShoppingListDetailScreen({ route }: ShoppingListDetailSc
       <TouchableOpacity
         style={[styles.itemCard, isChecked && styles.itemCardChecked]}
         onPress={() => handleToggleItem(item.id)}
+        onLongPress={() => openEditModal(item)}
         activeOpacity={0.7}
         disabled={isProcessing}
       >
-        <View style={styles.checkbox}>
+        <View style={styles.checkboxItem}>
           {isChecked && <Text style={styles.checkmark}>✓</Text>}
         </View>
         <View style={styles.itemInfo}>
@@ -187,6 +249,22 @@ export default function ShoppingListDetailScreen({ route }: ShoppingListDetailSc
             {item.amount} {item.unit}
             {item.notes && ` • ${item.notes}`}
           </Text>
+        </View>
+        <View style={styles.itemActions}>
+          <TouchableOpacity
+            style={styles.itemActionButton}
+            onPress={() => openEditModal(item)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.itemActionText}>✏️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.itemActionButton}
+            onPress={() => handleDeleteItem(item)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.itemActionText}>🗑</Text>
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
@@ -332,6 +410,67 @@ export default function ShoppingListDetailScreen({ route }: ShoppingListDetailSc
           </View>
         </View>
       </Modal>
+
+      {/* Edit Item Modal */}
+      <Modal
+        visible={editModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>항목 수정</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="재료 이름"
+              placeholderTextColor={colors.textMuted}
+              value={editName}
+              onChangeText={setEditName}
+              autoFocus
+            />
+            <View style={styles.modalRow}>
+              <TextInput
+                style={[styles.modalInput, styles.modalInputHalf]}
+                placeholder="수량"
+                placeholderTextColor={colors.textMuted}
+                value={editAmount}
+                onChangeText={setEditAmount}
+                keyboardType="numeric"
+              />
+              <TextInput
+                style={[styles.modalInput, styles.modalInputHalf]}
+                placeholder="단위"
+                placeholderTextColor={colors.textMuted}
+                value={editUnit}
+                onChangeText={setEditUnit}
+              />
+            </View>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => {
+                  setEditModalVisible(false);
+                  setEditingItem(null);
+                }}
+              >
+                <Text style={styles.modalCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalAddButton, updateShoppingItem.isPending && styles.modalAddButtonDisabled]}
+                onPress={handleEditItem}
+                disabled={updateShoppingItem.isPending}
+              >
+                {updateShoppingItem.isPending ? (
+                  <ActivityIndicator size="small" color={colors.textLight} />
+                ) : (
+                  <Text style={styles.modalAddText}>저장</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -471,7 +610,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.successLight,
     opacity: 0.7,
   },
-  checkbox: {
+  checkboxItem: {
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -639,5 +778,16 @@ const styles = StyleSheet.create({
   modalAddText: {
     ...typography.button,
     color: colors.textLight,
+  },
+  itemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  itemActionButton: {
+    padding: spacing.xs,
+  },
+  itemActionText: {
+    fontSize: 16,
   },
 });

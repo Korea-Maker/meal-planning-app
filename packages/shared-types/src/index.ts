@@ -253,8 +253,10 @@ export interface CreateShoppingItemRequest {
 }
 
 export interface UpdateShoppingItemRequest {
-  is_checked?: boolean
+  ingredient_name?: string
   amount?: number
+  unit?: string
+  is_checked?: boolean
   notes?: string
 }
 

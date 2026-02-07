@@ -78,7 +78,10 @@ export default function MealPlanScreen() {
       return date;
     });
 
-    const isoDate = startOfWeek.toISOString().split('T')[0];
+    const sy = startOfWeek.getFullYear();
+    const sm = String(startOfWeek.getMonth() + 1).padStart(2, '0');
+    const sd = String(startOfWeek.getDate()).padStart(2, '0');
+    const isoDate = `${sy}-${sm}-${sd}`;
 
     return {
       weekDates: dates,
@@ -204,7 +207,10 @@ export default function MealPlanScreen() {
   };
 
   const formatDateISO = (date: Date) => {
-    return date.toISOString().split('T')[0];
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   };
 
   const isToday = (date: Date) => {
@@ -250,27 +256,36 @@ export default function MealPlanScreen() {
     }
   };
 
-  // Handle deleting meal slot
-  const handleDeleteSlot = (slotId: string) => {
-    if (!mealPlan) return;
-
-    Alert.alert('식사 삭제', '이 식사를 삭제하시겠습니까?', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '삭제',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteMealSlot.mutateAsync({
-              mealPlanId: mealPlan.id,
-              slotId,
-            });
-          } catch (error) {
-            Alert.alert('오류', '식사를 삭제하는데 실패했습니다.');
-          }
-        },
-      },
-    ]);
+  // Handle tapping a filled slot - show action options
+  const handleSlotPress = (date: Date, mealType: MealKey, slot: { id: string; recipe: { title: string } } | null | undefined) => {
+    if (slot) {
+      // Filled slot - show action sheet with delete option
+      Alert.alert(
+        slot.recipe.title,
+        '이 식사를 어떻게 하시겠습니까?',
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '삭제',
+            style: 'destructive',
+            onPress: async () => {
+              if (!mealPlan) return;
+              try {
+                await deleteMealSlot.mutateAsync({
+                  mealPlanId: mealPlan.id,
+                  slotId: slot.id,
+                });
+              } catch {
+                Alert.alert('오류', '식사를 삭제하는데 실패했습니다.');
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      // Empty slot - navigate to add meal
+      handleAddMeal(date, mealType);
+    }
   };
 
   // Handle generating shopping list
@@ -465,8 +480,7 @@ export default function MealPlanScreen() {
                     mealSlotStyles[mealType.key],
                     slot && styles.mealSlotFilled,
                   ]}
-                  onPress={() => handleAddMeal(date, mealType.key)}
-                  onLongPress={() => slot && handleDeleteSlot(slot.id)}
+                  onPress={() => handleSlotPress(date, mealType.key, slot)}
                 >
                   {slot ? (
                     <View style={styles.mealSlotContent}>

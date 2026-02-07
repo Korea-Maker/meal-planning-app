@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  Alert,
 } from 'react-native';
 import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import { useRecipes, useAddMealSlot, useWeekMealPlan } from '../../hooks';
@@ -53,7 +54,10 @@ export default function AddMealScreen({ route }: AddMealScreenProps) {
     const d = new Date(date);
     const startOfWeek = new Date(d);
     startOfWeek.setDate(d.getDate() - d.getDay());
-    return startOfWeek.toISOString().split('T')[0];
+    const y = startOfWeek.getFullYear();
+    const m = String(startOfWeek.getMonth() + 1).padStart(2, '0');
+    const dd = String(startOfWeek.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
   }, [date]);
 
   // Fetch meal plan to get the ID
@@ -91,6 +95,7 @@ export default function AddMealScreen({ route }: AddMealScreenProps) {
       navigation.goBack();
     } catch (error) {
       if (__DEV__) console.error('Failed to add meal:', error);
+      Alert.alert('오류', '식사를 추가하는데 실패했습니다. 이미 해당 시간에 식사가 있을 수 있습니다.');
     }
   };
 

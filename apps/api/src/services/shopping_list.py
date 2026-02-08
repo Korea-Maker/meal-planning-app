@@ -104,9 +104,7 @@ class ShoppingListService:
         # Using get_all_slots_with_ingredients instead of date-range query
         # to avoid missing slots due to frontend (Sunday-start) vs backend
         # (Monday-start) week start date mismatch.
-        slots = await self.meal_plan_repo.get_all_slots_with_ingredients(
-            meal_plan_id
-        )
+        slots = await self.meal_plan_repo.get_all_slots_with_ingredients(meal_plan_id)
 
         aggregated = defaultdict(lambda: {"amount": 0, "unit": "", "category": "other"})
 

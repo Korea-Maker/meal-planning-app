@@ -10,7 +10,9 @@ RecipeDifficulty = Literal["easy", "medium", "hard"]
 RecipeCategory = Literal[
     "breakfast", "lunch", "dinner", "snack", "dessert", "appetizer", "side", "drink"
 ]
-ExternalSource = Literal["spoonacular", "themealdb", "foodsafetykorea", "mafra", "korean_seed", "url"]
+ExternalSource = Literal[
+    "spoonacular", "themealdb", "foodsafetykorea", "mafra", "korean_seed", "url"
+]
 
 
 class RecipeCreate(BaseModel):

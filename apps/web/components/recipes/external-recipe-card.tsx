@@ -74,11 +74,17 @@ interface ExternalRecipeCardProps {
 const sourceLabels: Record<ExternalRecipeSource, string> = {
   spoonacular: 'Spoonacular',
   themealdb: 'TheMealDB',
+  korean_seed: '한국 시드',
+  foodsafetykorea: '식품안전나라',
+  mafra: '농식품정보원',
 }
 
 const sourceBadgeColors: Record<ExternalRecipeSource, string> = {
   spoonacular: 'bg-green-100 text-green-800',
   themealdb: 'bg-orange-100 text-orange-800',
+  korean_seed: 'bg-blue-100 text-blue-800',
+  foodsafetykorea: 'bg-red-100 text-red-800',
+  mafra: 'bg-purple-100 text-purple-800',
 }
 
 export function ExternalRecipeCard({ recipe, onImported }: ExternalRecipeCardProps) {

@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -31,10 +31,14 @@ class RecipeRepository(BaseRepository[Recipe]):
         skip: int = 0,
         limit: int = 20,
     ) -> list[Recipe]:
+        image_priority = case(
+            (Recipe.image_url.isnot(None) & (Recipe.image_url != ""), 0),
+            else_=1,
+        )
         result = await self.session.execute(
             select(Recipe)
             .where(Recipe.user_id == user_id)
-            .order_by(Recipe.created_at.desc())
+            .order_by(image_priority, Recipe.created_at.desc())
             .offset(skip)
             .limit(limit)
         )
@@ -79,8 +83,12 @@ class RecipeRepository(BaseRepository[Recipe]):
         count_result = await self.session.execute(count_stmt)
         total = count_result.scalar_one()
 
-        # Get paginated results
-        stmt = stmt.order_by(Recipe.created_at.desc()).offset(skip).limit(limit)
+        # Get paginated results (images first)
+        image_priority = case(
+            (Recipe.image_url.isnot(None) & (Recipe.image_url != ""), 0),
+            else_=1,
+        )
+        stmt = stmt.order_by(image_priority, Recipe.created_at.desc()).offset(skip).limit(limit)
         result = await self.session.execute(stmt)
         recipes = list(result.scalars().all())
 
@@ -142,9 +150,13 @@ class RecipeRepository(BaseRepository[Recipe]):
         count_result = await self.session.execute(select(func.count()).select_from(Recipe))
         total = count_result.scalar_one()
 
-        # Get paginated results
+        # Get paginated results (images first)
+        image_priority = case(
+            (Recipe.image_url.isnot(None) & (Recipe.image_url != ""), 0),
+            else_=1,
+        )
         result = await self.session.execute(
-            select(Recipe).order_by(Recipe.created_at.desc()).offset(skip).limit(limit)
+            select(Recipe).order_by(image_priority, Recipe.created_at.desc()).offset(skip).limit(limit)
         )
         return list(result.scalars().all()), total
 
@@ -174,8 +186,12 @@ class RecipeRepository(BaseRepository[Recipe]):
         count_result = await self.session.execute(count_stmt)
         total = count_result.scalar_one()
 
-        # Get paginated results
-        stmt = stmt.order_by(Recipe.created_at.desc()).offset(skip).limit(limit)
+        # Get paginated results (images first)
+        image_priority = case(
+            (Recipe.image_url.isnot(None) & (Recipe.image_url != ""), 0),
+            else_=1,
+        )
+        stmt = stmt.order_by(image_priority, Recipe.created_at.desc()).offset(skip).limit(limit)
         result = await self.session.execute(stmt)
         recipes = list(result.scalars().all())
 

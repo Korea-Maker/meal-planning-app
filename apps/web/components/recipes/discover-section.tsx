@@ -44,7 +44,7 @@ export function DiscoverSection({ onRecipeImported }: DiscoverSectionProps) {
   } = useDiscoverRecipes({
     category: discoverCategory || undefined,
     cuisine: discoverCuisine || undefined,
-    number: 12,
+    number: 18,
   })
 
   const {

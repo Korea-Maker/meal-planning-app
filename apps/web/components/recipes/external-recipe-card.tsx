@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { Clock, Users, ExternalLink, Plus, Loader2, Calendar } from 'lucide-react'
+import { RecipeImage } from '@/components/recipes/recipe-image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -177,19 +178,11 @@ export function ExternalRecipeCard({ recipe, onImported }: ExternalRecipeCardPro
     <>
       <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowDetail(true)}>
         <div className="relative aspect-video bg-gray-100">
-          {recipe.image_url ? (
-            <Image
-              src={recipe.image_url}
-              alt={recipe.title}
-              fill
-              className="object-contain"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            />
-          ) : (
-            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-400">이미지 없음</span>
-            </div>
-          )}
+          <RecipeImage
+            src={recipe.image_url}
+            alt={recipe.title}
+            className="object-contain"
+          />
           <Badge className={`absolute top-2 right-2 ${sourceBadgeColors[recipe.source]}`}>
             {sourceLabels[recipe.source]}
           </Badge>
@@ -249,12 +242,10 @@ export function ExternalRecipeCard({ recipe, onImported }: ExternalRecipeCardPro
             <div className="space-y-4">
               {detail.image_url && (
                 <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100">
-                  <Image
+                  <RecipeImage
                     src={detail.image_url}
                     alt={detail.title}
-                    fill
                     className="object-contain"
-                    sizes="(max-width: 768px) 100vw, 672px"
                   />
                 </div>
               )}

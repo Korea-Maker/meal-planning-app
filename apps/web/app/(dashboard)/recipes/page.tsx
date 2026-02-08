@@ -12,6 +12,7 @@ import { URLImportDialog } from '@/components/recipes/url-import-dialog'
 import { DiscoverSection } from '@/components/recipes/discover-section'
 import { FavoriteButton } from '@/components/recipes/favorite-button'
 import { RecipeStats } from '@/components/recipes/recipe-stats'
+import { RecipeImage } from '@/components/recipes/recipe-image'
 import { useRecipes, useBrowseRecipes } from '@/hooks/use-recipes'
 import { useFavoriteRecipes } from '@/hooks/use-recipe-interactions'
 import { useQueryClient } from '@tanstack/react-query'
@@ -372,20 +373,14 @@ function RecipeGridSection({
             className="group cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 h-full relative overflow-hidden"
           >
             <Link href={`/recipes/${recipe.id}`} className="block">
-              {recipe.image_url ? (
-                <div className="aspect-video bg-muted rounded-t-2xl overflow-hidden relative">
-                  <img
-                    src={recipe.image_url}
-                    alt={recipe.title}
-                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              ) : (
-                <div className="aspect-video bg-gradient-to-br from-primary/5 to-accent/5 rounded-t-2xl flex items-center justify-center">
-                  <ChefHat className="h-12 w-12 text-primary/30" />
-                </div>
-              )}
+              <div className="aspect-video bg-muted rounded-t-2xl overflow-hidden relative">
+                <RecipeImage
+                  src={recipe.image_url}
+                  alt={recipe.title}
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">

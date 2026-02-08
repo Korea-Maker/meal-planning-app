@@ -32,6 +32,7 @@ import { toast } from '@/hooks/use-toast'
 import { FavoriteButton } from '@/components/recipes/favorite-button'
 import { RecipeStats } from '@/components/recipes/recipe-stats'
 import { RatingForm } from '@/components/recipes/rating-form'
+import { RecipeImage } from '@/components/recipes/recipe-image'
 
 const DIFFICULTY_LABELS = {
   easy: '쉬움',
@@ -196,11 +197,11 @@ export default function RecipeDetailPage({ params }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {recipe.image_url && (
-            <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
-              <img
+            <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden relative">
+              <RecipeImage
                 src={recipe.image_url}
                 alt={recipe.title}
-                className="w-full h-full object-contain"
+                className="object-contain"
               />
             </div>
           )}

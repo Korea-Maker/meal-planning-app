@@ -24,6 +24,58 @@ class SpoonacularAdapter:
         """Check if API key is configured."""
         return bool(self.api_key)
 
+    async def search_recipe_ids(
+        self,
+        query: str = "",
+        cuisine: str | None = None,
+        diet: str | None = None,
+        number: int = 10,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """
+        Lightweight search returning only IDs (1 point per call).
+
+        This method does NOT use addRecipeInformation or fillIngredients,
+        making it 21x more efficient than search_recipes for prefetching.
+
+        Args:
+            query: Search query
+            cuisine: Filter by cuisine (e.g., "korean", "italian")
+            diet: Filter by diet (e.g., "vegetarian", "vegan")
+            number: Number of results (max 100)
+            offset: Offset for pagination
+
+        Returns:
+            Dictionary with 'ids' (list of recipe IDs) and 'totalResults' (int)
+        """
+        if not self.is_configured:
+            return {"ids": [], "totalResults": 0}
+
+        params = {
+            "apiKey": self.api_key,
+            "query": query,
+            "number": min(number, 100),
+            "offset": offset,
+        }
+        if cuisine:
+            params["cuisine"] = cuisine
+        if diet:
+            params["diet"] = diet
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.base_url}/recipes/complexSearch",
+                    params=params,
+                )
+                response.raise_for_status()
+                data = response.json()
+                ids = [str(r.get("id")) for r in data.get("results", [])]
+                return {"ids": ids, "totalResults": data.get("totalResults", 0)}
+        except httpx.HTTPError as e:
+            logger.error(f"Spoonacular search_ids error: {e}")
+            return {"ids": [], "totalResults": 0}
+
     async def search_recipes(
         self,
         query: str,

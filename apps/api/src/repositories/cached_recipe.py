@@ -128,7 +128,7 @@ class CachedRecipeRepository(BaseRepository[CachedRecipe]):
     ) -> list[CachedRecipe]:
         """Get recipes pending translation."""
         stmt = select(CachedRecipe).where(
-            CachedRecipe.translation_status.in_(["pending", "failed"])
+            CachedRecipe.translation_status.in_(["pending", "failed", "skipped"])
         )
         if source:
             stmt = stmt.where(CachedRecipe.external_source == source)

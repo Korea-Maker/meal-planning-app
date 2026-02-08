@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
@@ -16,6 +15,7 @@ import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import type { RecipeDifficulty, RecipeCategory, CreateIngredientRequest, CreateInstructionRequest } from '@meal-planning/shared-types';
 import { useCreateRecipe, useUpdateRecipe, useRecipe } from '../../hooks';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
+import { RecipeImage } from '../../components/RecipeImage';
 
 interface RecipeFormScreenProps {
   route: {
@@ -272,7 +272,7 @@ export default function RecipeFormScreen({ route }: RecipeFormScreenProps) {
           <Text style={styles.sectionTitle}>사진</Text>
           <TouchableOpacity style={styles.imageContainer} onPress={handleImagePick}>
             {imageUri ? (
-              <Image source={{ uri: imageUri }} style={styles.recipeImage} />
+              <RecipeImage uri={imageUri} style={styles.recipeImage} />
             ) : (
               <View style={styles.imagePlaceholder}>
                 <Text style={styles.imagePlaceholderIcon}>📷</Text>

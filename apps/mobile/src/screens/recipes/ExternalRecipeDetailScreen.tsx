@@ -6,11 +6,11 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
-  Image,
 } from 'react-native';
 import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 import { useExternalRecipeDetail } from '../../hooks/use-recipes';
+import { RecipeImage } from '../../components/RecipeImage';
 
 interface ExternalRecipeDetailScreenProps {
   route: {
@@ -72,17 +72,7 @@ export default function ExternalRecipeDetailScreen({ route }: ExternalRecipeDeta
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* Image - show preview image while loading, then recipe image */}
-        {(recipe?.image_url || imageUrl) ? (
-          <Image
-            source={{ uri: recipe?.image_url || imageUrl }}
-            style={styles.recipeImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <Text style={styles.imagePlaceholderText}>🍳</Text>
-          </View>
-        )}
+        <RecipeImage uri={recipe?.image_url || imageUrl} style={styles.recipeImage} />
 
         <View style={styles.content}>
           {/* Title - show immediately from params */}

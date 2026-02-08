@@ -9,13 +9,13 @@ import {
   ViewStyle,
   TextInput,
   RefreshControl,
-  Image,
   ScrollView,
 } from 'react-native';
 import type { Recipe } from '@meal-planning/shared-types';
 import { useRecipes, useBrowseRecipes, useDiscoverRecipes, useExternalCuisines } from '../../hooks/use-recipes';
 import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
+import { RecipeImage } from '../../components/RecipeImage';
 
 type DifficultyKey = 'easy' | 'medium' | 'hard';
 
@@ -81,17 +81,7 @@ export default function RecipeListScreen() {
         style={styles.recipeCard}
         onPress={() => navigation.navigate('RecipeDetail', { recipeId: String(item.id) })}
       >
-        {item.image_url ? (
-          <Image
-            source={{ uri: item.image_url }}
-            style={styles.recipeImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.recipePlaceholder}>
-            <Text style={styles.recipePlaceholderText}>🍳</Text>
-          </View>
-        )}
+        <RecipeImage uri={item.image_url} style={styles.recipeImage} />
         <View style={styles.recipeInfo}>
           <Text style={styles.recipeTitle} numberOfLines={2}>
             {item.title}
@@ -250,13 +240,7 @@ export default function RecipeListScreen() {
                           imageUrl: recipe.image_url,
                         })}
                       >
-                        {recipe.image_url ? (
-                          <Image source={{ uri: recipe.image_url }} style={styles.discoverCardImage} resizeMode="cover" />
-                        ) : (
-                          <View style={[styles.discoverCardImage, styles.discoverCardPlaceholder]}>
-                            <Text style={{ fontSize: 32 }}>🍲</Text>
-                          </View>
-                        )}
+                        <RecipeImage uri={recipe.image_url} style={styles.discoverCardImage} />
                         <Text style={styles.discoverCardTitle} numberOfLines={2}>{recipe.title}</Text>
                         {recipe.ready_in_minutes && (
                           <Text style={styles.discoverCardMeta}>⏱ {recipe.ready_in_minutes}분</Text>
@@ -283,13 +267,7 @@ export default function RecipeListScreen() {
                           imageUrl: recipe.image_url,
                         })}
                       >
-                        {recipe.image_url ? (
-                          <Image source={{ uri: recipe.image_url }} style={styles.discoverCardImage} resizeMode="cover" />
-                        ) : (
-                          <View style={[styles.discoverCardImage, styles.discoverCardPlaceholder]}>
-                            <Text style={{ fontSize: 32 }}>🍽</Text>
-                          </View>
-                        )}
+                        <RecipeImage uri={recipe.image_url} style={styles.discoverCardImage} />
                         <Text style={styles.discoverCardTitle} numberOfLines={2}>{recipe.title}</Text>
                         {recipe.ready_in_minutes && (
                           <Text style={styles.discoverCardMeta}>⏱ {recipe.ready_in_minutes}분</Text>
@@ -316,13 +294,7 @@ export default function RecipeListScreen() {
                           imageUrl: recipe.image_url,
                         })}
                       >
-                        {recipe.image_url ? (
-                          <Image source={{ uri: recipe.image_url }} style={styles.discoverCardImage} resizeMode="cover" />
-                        ) : (
-                          <View style={[styles.discoverCardImage, styles.discoverCardPlaceholder]}>
-                            <Text style={{ fontSize: 32 }}>🥘</Text>
-                          </View>
-                        )}
+                        <RecipeImage uri={recipe.image_url} style={styles.discoverCardImage} />
                         <Text style={styles.discoverCardTitle} numberOfLines={2}>{recipe.title}</Text>
                         {recipe.ready_in_minutes && (
                           <Text style={styles.discoverCardMeta}>⏱ {recipe.ready_in_minutes}분</Text>

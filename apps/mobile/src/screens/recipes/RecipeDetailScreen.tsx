@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  Image,
 } from 'react-native';
 import { useSimpleNavigation } from '../../navigation/CustomNavigationContext';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
@@ -23,6 +22,7 @@ import {
   useDeleteRating,
   useDeleteMealSlot,
 } from '../../hooks';
+import { RecipeImage } from '../../components/RecipeImage';
 
 interface RecipeDetailScreenProps {
   route: {
@@ -193,17 +193,7 @@ export default function RecipeDetailScreen({ route }: RecipeDetailScreenProps) {
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* Image */}
-        {recipe.image_url ? (
-          <Image
-            source={{ uri: recipe.image_url }}
-            style={styles.recipeImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <Text style={styles.imagePlaceholderText}>🍳</Text>
-          </View>
-        )}
+        <RecipeImage uri={recipe.image_url} style={styles.recipeImage} />
 
       {/* Content */}
       <View style={styles.content}>

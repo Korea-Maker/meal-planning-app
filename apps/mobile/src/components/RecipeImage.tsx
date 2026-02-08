@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Image, View, Text, StyleSheet, ImageStyle, ViewStyle } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { Image, View, Text, StyleSheet, ImageStyle, ViewStyle, Platform } from 'react-native';
 
 interface RecipeImageProps {
   uri?: string | null;
@@ -8,15 +8,42 @@ interface RecipeImageProps {
   resizeMode?: 'cover' | 'contain' | 'stretch' | 'center';
 }
 
+const PROXY_BASE = Platform.OS === 'ios'
+  ? 'http://localhost:8000/api/v1/proxy/image?url='
+  : null;
+
+function toDisplayUri(uri: string): string {
+  let safeUri = uri;
+  if (uri.startsWith('http://') && !uri.includes('foodsafetykorea')) {
+    safeUri = uri.replace('http://', 'https://');
+  }
+
+  // Route TheMealDB images through backend proxy on iOS
+  // iOS native Image loader silently fails for these URLs
+  if (PROXY_BASE && safeUri.includes('themealdb.com')) {
+    return PROXY_BASE + encodeURIComponent(safeUri);
+  }
+
+  return safeUri;
+}
+
 export function RecipeImage({ uri, style, containerStyle, resizeMode = 'cover' }: RecipeImageProps) {
   const [hasError, setHasError] = useState(false);
+  const [retried, setRetried] = useState(false);
+  const [displayUri, setDisplayUri] = useState<string | null>(uri ? toDisplayUri(uri) : null);
 
-  // Convert http:// to https:// for safety (except foodsafetykorea which needs http)
-  const safeUri = uri && !uri.includes('foodsafetykorea') && uri.startsWith('http://')
-    ? uri.replace('http://', 'https://')
-    : uri;
+  const handleError = useCallback(() => {
+    if (!uri || retried) {
+      setHasError(true);
+      return;
+    }
+    // Retry once with cache-busting
+    const base = toDisplayUri(uri);
+    setDisplayUri(base + (base.includes('?') ? '&' : '?') + '_cb=' + Date.now());
+    setRetried(true);
+  }, [uri, retried]);
 
-  if (!safeUri || hasError) {
+  if (!uri || hasError) {
     return (
       <View style={[styles.placeholder, containerStyle, style as ViewStyle]}>
         <Text style={styles.placeholderIcon}>🍽️</Text>
@@ -27,10 +54,10 @@ export function RecipeImage({ uri, style, containerStyle, resizeMode = 'cover' }
 
   return (
     <Image
-      source={{ uri: safeUri }}
+      source={{ uri: displayUri || undefined }}
       style={style}
       resizeMode={resizeMode}
-      onError={() => setHasError(true)}
+      onError={handleError}
     />
   );
 }

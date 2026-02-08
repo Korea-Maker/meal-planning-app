@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from src.api.v1.endpoints import auth, health, meal_plans, recipes, shopping_lists, users
+from src.api.v1.endpoints import auth, health, meal_plans, proxy, recipes, shopping_lists, users
 
 api_router = APIRouter()
 
@@ -14,3 +14,4 @@ api_router.include_router(
     prefix="/shopping-lists",
     tags=["shopping-lists"],
 )
+api_router.include_router(proxy.router, prefix="/proxy", tags=["proxy"])

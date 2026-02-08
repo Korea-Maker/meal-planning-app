@@ -15,6 +15,20 @@ interface ApiError {
   details?: Record<string, unknown>
 }
 
+class ApiHttpError extends Error {
+  status: number
+  code: string
+  details?: Record<string, unknown>
+
+  constructor(message: string, status: number, code: string, details?: Record<string, unknown>) {
+    super(message)
+    this.name = 'ApiHttpError'
+    this.status = status
+    this.code = code
+    this.details = details
+  }
+}
+
 class ApiClient {
   private baseUrl: string
   private accessToken: string | null = null
@@ -51,7 +65,12 @@ class ApiClient {
 
     if (!response.ok) {
       const error = (await response.json()) as ApiError
-      throw new Error(error.error || 'Request failed')
+      throw new ApiHttpError(
+        error.error || 'Request failed',
+        response.status,
+        error.code,
+        error.details
+      )
     }
 
     if (response.status === 204) {

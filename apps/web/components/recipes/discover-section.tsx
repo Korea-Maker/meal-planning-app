@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Globe, Loader2, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search, Globe, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -27,7 +27,6 @@ interface DiscoverSectionProps {
 }
 
 export function DiscoverSection({ onRecipeImported }: DiscoverSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState<'discover' | 'search'>('discover')
   const [discoverCategory, setDiscoverCategory] = useState<string>('')
   const [discoverCuisine, setDiscoverCuisine] = useState<string>('')
@@ -42,15 +41,11 @@ export function DiscoverSection({ onRecipeImported }: DiscoverSectionProps) {
     data: discoverData,
     isLoading: isDiscoverLoading,
     refetch: refetchDiscover,
-  } = useDiscoverRecipes(
-    isExpanded
-      ? {
-          category: discoverCategory || undefined,
-          cuisine: discoverCuisine || undefined,
-          number: 12,
-        }
-      : undefined
-  )
+  } = useDiscoverRecipes({
+    category: discoverCategory || undefined,
+    cuisine: discoverCuisine || undefined,
+    number: 12,
+  })
 
   const {
     data: searchData,
@@ -74,46 +69,8 @@ export function DiscoverSection({ onRecipeImported }: DiscoverSectionProps) {
 
   const availableSources = sources?.filter(s => s.available) || []
 
-  if (!isExpanded) {
-    return (
-      <div className="border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-purple-50">
-        <button
-          onClick={() => setIsExpanded(true)}
-          className="w-full flex items-center justify-between text-left"
-        >
-          <div className="flex items-center gap-3">
-            <Globe className="h-5 w-5 text-primary" />
-            <div>
-              <h3 className="font-semibold">외부 레시피 탐색</h3>
-              <p className="text-sm text-gray-500">
-                Spoonacular, TheMealDB에서 다양한 레시피를 발견하세요
-              </p>
-            </div>
-          </div>
-          <ChevronDown className="h-5 w-5 text-gray-400" />
-        </button>
-      </div>
-    )
-  }
-
   return (
-    <div className="border rounded-lg p-4 space-y-4 bg-gradient-to-r from-blue-50 to-purple-50">
-      <button
-        onClick={() => setIsExpanded(false)}
-        className="w-full flex items-center justify-between text-left"
-      >
-        <div className="flex items-center gap-3">
-          <Globe className="h-5 w-5 text-primary" />
-          <div>
-            <h3 className="font-semibold">외부 레시피 탐색</h3>
-            <p className="text-sm text-gray-500">
-              {availableSources.length}개 소스 사용 가능
-            </p>
-          </div>
-        </div>
-        <ChevronUp className="h-5 w-5 text-gray-400" />
-      </button>
-
+    <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'discover' | 'search')}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="discover">추천 레시피</TabsTrigger>

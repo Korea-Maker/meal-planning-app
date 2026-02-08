@@ -14,6 +14,7 @@ from src.adapters.themealdb import themealdb_adapter
 from src.core.config import settings
 from src.core.exceptions import NotFoundError, RateLimitExceededError
 from src.core.redis import RedisClient
+from src.repositories.cached_recipe import CachedRecipeRepository
 from src.repositories.recipe import RecipeRepository
 from src.schemas.ingredient import IngredientCreate
 from src.schemas.instruction import InstructionCreate
@@ -37,6 +38,7 @@ class ExternalRecipeService:
         self.session = session
         self.redis = redis
         self.recipe_repo = RecipeRepository(session)
+        self.cached_repo = CachedRecipeRepository(session)
         self.translation = TranslationService(redis)
 
     async def discover_recipes(
@@ -48,6 +50,7 @@ class ExternalRecipeService:
     ) -> dict[str, Any]:
         """
         Discover recipes from multiple sources.
+        Uses cached DB first, falls back to live API calls.
 
         Args:
             user_id: User ID for rate limiting
@@ -72,9 +75,25 @@ class ExternalRecipeService:
 
         per_source = number // 3
 
+        # Try cached DB first for TheMealDB and Spoonacular
+        cached_themealdb = None
+        cached_spoonacular = None
+        try:
+            cached_themealdb = await self.cached_repo.get_discover(
+                category=category, cuisine=cuisine, source="themealdb", limit=per_source
+            )
+            cached_spoonacular = await self.cached_repo.get_discover(
+                category=category, cuisine=cuisine, source="spoonacular", limit=per_source
+            )
+        except Exception:
+            logger.debug("Cached recipes table not available, falling back to API")
+
+        if cached_themealdb:
+            results["themealdb"] = [self._cached_to_preview(r) for r in cached_themealdb]
+        if cached_spoonacular:
+            results["spoonacular"] = [self._cached_to_preview(r) for r in cached_spoonacular]
+
         # Korean seed recipes (always available, no API needed)
-        # Include korean_seed when: no cuisine filter, or cuisine is Korean
-        # Skip when cuisine is explicitly non-Korean (Japanese, Chinese, etc.)
         include_korean_seed = not cuisine or "korean" in cuisine.lower()
         if seed_recipe_service.is_configured and include_korean_seed:
             try:
@@ -89,7 +108,8 @@ class ExternalRecipeService:
             except Exception as e:
                 logger.error(f"Korean seed discover error: {e}")
 
-        if spoonacular_adapter.is_configured:
+        # Fall back to live API if cache is empty
+        if not results["spoonacular"] and spoonacular_adapter.is_configured:
             try:
                 if cuisine:
                     spoon_results = await spoonacular_adapter.search_recipes(
@@ -112,27 +132,28 @@ class ExternalRecipeService:
             except Exception as e:
                 logger.error(f"Spoonacular discover error: {e}")
 
-        try:
-            if cuisine:
-                mealdb_results = await themealdb_adapter.search_by_area(cuisine.capitalize())
-            elif category:
-                mealdb_results = await themealdb_adapter.search_by_category(category.capitalize())
-            else:
-                mealdb_results = await themealdb_adapter.get_random_recipes(per_source)
+        if not results["themealdb"]:
+            try:
+                if cuisine:
+                    mealdb_results = await themealdb_adapter.search_by_area(cuisine.capitalize())
+                elif category:
+                    mealdb_results = await themealdb_adapter.search_by_category(
+                        category.capitalize()
+                    )
+                else:
+                    mealdb_results = await themealdb_adapter.get_random_recipes(per_source)
 
-            results["themealdb"] = mealdb_results[:per_source]
-        except Exception as e:
-            logger.error(f"TheMealDB discover error: {e}")
+                results["themealdb"] = mealdb_results[:per_source]
+            except Exception as e:
+                logger.error(f"TheMealDB discover error: {e}")
 
-        # Translate English sources (Spoonacular, TheMealDB) to Korean
-        # Note: TheMealDB titles are proper food names that should NOT be translated
-        # (e.g., "Pad Thai", "Teriyaki Chicken") - DeepL mistranslates them
+        # Translate only live API results (cached DB results are already translated)
         if self.translation.is_configured:
-            if results["spoonacular"]:
+            if results["spoonacular"] and not cached_spoonacular:
                 results["spoonacular"] = await self.translation.translate_recipes_batch(
                     results["spoonacular"]
                 )
-            if results["themealdb"]:
+            if results["themealdb"] and not cached_themealdb:
                 original_titles = [r.get("title") for r in results["themealdb"]]
                 results["themealdb"] = await self.translation.translate_recipes_batch(
                     results["themealdb"]
@@ -161,6 +182,7 @@ class ExternalRecipeService:
     ) -> dict[str, Any]:
         """
         Search recipes from external sources.
+        Uses cached DB first, falls back to live API calls.
 
         Args:
             user_id: User ID for rate limiting
@@ -174,9 +196,52 @@ class ExternalRecipeService:
         Returns:
             Search results with pagination
         """
+        offset = (page - 1) * limit
+
+        # Try cached DB first
+        cache_source = source if source in ("spoonacular", "themealdb") else None
+        cached_results = None
+        cached_total = 0
+        try:
+            cached_results, cached_total = await self.cached_repo.search(
+                query=query,
+                source=cache_source,
+                categories=[cuisine] if cuisine else None,
+                skip=offset,
+                limit=limit,
+            )
+        except Exception:
+            logger.debug("Cached recipes table not available, falling back to API")
+
+        if cached_results:
+            results = [self._cached_to_preview(r) for r in cached_results]
+
+            # Also include korean_seed from live source
+            if source is None or source == "korean_seed":
+                if seed_recipe_service.is_configured:
+                    try:
+                        seed_results = seed_recipe_service.search_recipes(
+                            query=query,
+                            category=cuisine,
+                            number=limit,
+                            offset=offset,
+                        )
+                        results.extend(seed_results.get("results", []))
+                        cached_total += seed_results.get("totalResults", 0)
+                    except Exception as e:
+                        logger.error(f"Korean seed search error: {e}")
+
+            return {
+                "results": results,
+                "total": cached_total,
+                "page": page,
+                "limit": limit,
+                "total_pages": (cached_total + limit - 1) // limit if cached_total > 0 else 0,
+            }
+
+        # Fall back to live API search
         await self._check_rate_limit(user_id)
 
-        offset = (page - 1) * limit
         results = []
         total = 0
 
@@ -250,6 +315,7 @@ class ExternalRecipeService:
     ) -> dict[str, Any] | None:
         """
         Get external recipe details.
+        Uses cached DB first, falls back to Redis cache then live API.
 
         Args:
             source: Recipe source
@@ -258,11 +324,24 @@ class ExternalRecipeService:
         Returns:
             Recipe details or None
         """
+        # 1. Check cached DB first
+        cached_recipe = None
+        if source in ("spoonacular", "themealdb"):
+            try:
+                cached_recipe = await self.cached_repo.get_by_source(source, external_id)
+            except Exception:
+                logger.debug("Cached recipes table not available, falling back to API")
+
+            if cached_recipe:
+                return self._cached_to_detail(cached_recipe)
+
+        # 2. Check Redis cache
         cache_key = f"{CACHE_KEY_PREFIX}:recipe:{source}:{external_id}"
         cached = await self._get_cached(cache_key)
         if cached:
             return cached
 
+        # 3. Fall back to live API
         result = None
 
         if source == "spoonacular":
@@ -296,6 +375,7 @@ class ExternalRecipeService:
     ) -> Any:
         """
         Import an external recipe to user's collection.
+        Uses cached DB to avoid API calls when possible.
 
         Args:
             user_id: User ID
@@ -312,7 +392,21 @@ class ExternalRecipeService:
         if existing:
             return existing
 
-        recipe_data = await self.get_external_recipe(source, external_id)
+        # Try cached DB first to get recipe data without API call
+        recipe_data = None
+        cached_recipe = None
+        if source in ("spoonacular", "themealdb"):
+            try:
+                cached_recipe = await self.cached_repo.get_by_source(source, external_id)
+            except Exception:
+                logger.debug("Cached recipes table not available, falling back to API")
+
+            if cached_recipe:
+                recipe_data = self._cached_to_detail(cached_recipe)
+
+        if not recipe_data:
+            recipe_data = await self.get_external_recipe(source, external_id)
+
         if not recipe_data:
             raise NotFoundError(f"External recipe not found: {source}/{external_id}")
 
@@ -495,3 +589,53 @@ class ExternalRecipeService:
             )
         except Exception as e:
             logger.warning(f"Failed to cache result: {e}")
+
+    async def get_cache_status(self) -> dict[str, Any]:
+        """Get cached recipe counts by source."""
+        try:
+            counts = await self.cached_repo.count_all_by_source()
+            total = sum(counts.values())
+            return {**counts, "total": total}
+        except Exception:
+            logger.debug("Cached recipes table not available")
+            return {"total": 0}
+
+    @staticmethod
+    def _cached_to_preview(cached: Any) -> dict[str, Any]:
+        """Convert CachedRecipe model to discovery/search preview dict."""
+        return {
+            "source": cached.external_source,
+            "external_id": cached.external_id,
+            "title": cached.title,
+            "image_url": cached.image_url,
+            "category": (cached.categories[0] if cached.categories else None),
+            "summary": (cached.description or "")[:200],
+            "servings": cached.servings,
+            "difficulty": cached.difficulty,
+            "calories": cached.calories,
+        }
+
+    @staticmethod
+    def _cached_to_detail(cached: Any) -> dict[str, Any]:
+        """Convert CachedRecipe model to full recipe detail dict."""
+        return {
+            "source": cached.external_source,
+            "external_id": cached.external_id,
+            "title": cached.title,
+            "title_original": cached.title_original,
+            "description": cached.description,
+            "image_url": cached.image_url,
+            "prep_time_minutes": cached.prep_time_minutes,
+            "cook_time_minutes": cached.cook_time_minutes,
+            "servings": cached.servings,
+            "difficulty": cached.difficulty,
+            "categories": cached.categories or [],
+            "tags": cached.tags or [],
+            "source_url": cached.source_url,
+            "ingredients": cached.ingredients_json or [],
+            "instructions": cached.instructions_json or [],
+            "calories": cached.calories,
+            "protein_grams": cached.protein_grams,
+            "carbs_grams": cached.carbs_grams,
+            "fat_grams": cached.fat_grams,
+        }

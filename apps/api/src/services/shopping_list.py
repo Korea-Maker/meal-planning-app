@@ -77,6 +77,8 @@ class ShoppingListService:
         user_id: str,
         meal_plan_id: str,
         name: str | None = None,
+        dates: list[str] | None = None,
+        meal_types: list[str] | None = None,
     ) -> ShoppingList:
         # Use get_by_id (not get_by_id_with_slots) to avoid loading Recipe objects
         # without ingredients into the SQLAlchemy identity map, which would prevent
@@ -91,7 +93,18 @@ class ShoppingListService:
         if existing:
             await self.shopping_list_repo.delete(existing)
 
-        list_name = name or f"{meal_plan.week_start_date} 주간 장보기 목록"
+        # Generate descriptive name based on filters
+        if name:
+            list_name = name
+        elif dates and len(dates) < 7:
+            list_name = f"{meal_plan.week_start_date} 선택된 {len(dates)}일 장보기 목록"
+        elif meal_types:
+            type_labels = {"breakfast": "아침", "lunch": "점심", "dinner": "저녁", "snack": "간식"}
+            types_str = ", ".join(type_labels.get(mt, mt) for mt in meal_types)
+            list_name = f"{meal_plan.week_start_date} {types_str} 장보기 목록"
+        else:
+            list_name = f"{meal_plan.week_start_date} 주간 장보기 목록"
+
         shopping_list = await self.shopping_list_repo.create(
             {
                 "user_id": user_id,
@@ -105,6 +118,16 @@ class ShoppingListService:
         # to avoid missing slots due to frontend (Sunday-start) vs backend
         # (Monday-start) week start date mismatch.
         slots = await self.meal_plan_repo.get_all_slots_with_ingredients(meal_plan_id)
+
+        # Filter slots by dates and meal_types
+        if dates:
+            from datetime import date as date_type
+            date_set = {date_type.fromisoformat(d) for d in dates}
+            slots = [s for s in slots if s.date in date_set]
+
+        if meal_types:
+            meal_type_set = set(meal_types)
+            slots = [s for s in slots if s.meal_type in meal_type_set]
 
         aggregated = defaultdict(lambda: {"amount": 0, "unit": "", "category": "other"})
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import ARRAY, DateTime, ForeignKey, Index, Integer, Numeric, String, Text
-from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import BaseModel

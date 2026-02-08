@@ -66,3 +66,5 @@ class ShoppingListWithItemsResponse(ShoppingListResponse):
 class GenerateShoppingListRequest(BaseModel):
     meal_plan_id: str
     name: str | None = Field(default=None, min_length=1, max_length=200)
+    dates: list[str] | None = Field(default=None, description="Filter by specific dates (YYYY-MM-DD format)")
+    meal_types: list[str] | None = Field(default=None, description="Filter by meal types: breakfast, lunch, dinner, snack")

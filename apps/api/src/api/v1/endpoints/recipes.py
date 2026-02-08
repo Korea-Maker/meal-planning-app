@@ -257,6 +257,23 @@ async def search_external_recipes(
     return ApiResponse(success=True, data=results)
 
 
+@router.get("/external/cache-status", response_model=ApiResponse[dict[str, Any]])
+async def get_cache_status(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
+):
+    """
+    캐시된 외부 레시피 건수를 반환합니다.
+
+    Returns:
+        소스별 캐시 건수 (예: {"themealdb": 287, "spoonacular": 150, "total": 437})
+    """
+    service = ExternalRecipeService(db, redis)
+    status = await service.get_cache_status()
+    return ApiResponse(success=True, data=status)
+
+
 @router.get("/external/sources", response_model=ApiResponse[list[ExternalSourceInfo]])
 async def get_external_sources(
     user_id: str = Depends(get_current_user_id),

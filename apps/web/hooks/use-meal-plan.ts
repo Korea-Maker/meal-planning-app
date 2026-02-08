@@ -116,8 +116,16 @@ export function useGenerateShoppingList() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (mealPlanId: string) => {
-      const response = await api.post<ApiResponse<{ id: string }>>('/shopping-lists/generate', { meal_plan_id: mealPlanId })
+    mutationFn: async (params: {
+      mealPlanId: string
+      dates?: string[]
+      mealTypes?: string[]
+    }) => {
+      const response = await api.post<ApiResponse<{ id: string }>>('/shopping-lists/generate', {
+        meal_plan_id: params.mealPlanId,
+        dates: params.dates,
+        meal_types: params.mealTypes,
+      })
       return response.data
     },
     onSuccess: () => {

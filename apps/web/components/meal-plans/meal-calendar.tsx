@@ -9,6 +9,7 @@ import { MealSlot, EmptySlot } from './meal-slot'
 import { RecipePickerDialog } from './recipe-picker-dialog'
 import { AutoFillDialog } from './auto-fill-dialog'
 import { RecipeDetailModal } from './recipe-detail-modal'
+import { ShoppingListDialog } from './shopping-list-dialog'
 import {
   useWeekMealPlan,
   useCreateMealPlan,
@@ -309,20 +310,11 @@ export function MealCalendar() {
     )
   }, [mealPlan?.id, findSlotById, updateSlot])
 
-  const handleGenerateShoppingList = async () => {
-    if (!mealPlan?.id) {
-      toast({
-        title: '식사 계획 필요',
-        description: '먼저 레시피를 추가해 주세요',
-        variant: 'destructive',
-      })
-      return
-    }
-
+  const handleGenerateShoppingList = async (params: { mealPlanId: string; dates?: string[]; mealTypes?: string[] }) => {
     if (generateShoppingList.isPending) return
 
     try {
-      await generateShoppingList.mutateAsync(mealPlan.id)
+      await generateShoppingList.mutateAsync(params)
       toast({
         title: '장보기 목록 생성됨',
         description: '장보기 목록이 생성되었습니다',
@@ -705,19 +697,12 @@ export function MealCalendar() {
             <span className="hidden sm:inline">추천으로 채우기</span>
             <span className="sm:hidden">추천</span>
           </Button>
-          <Button
-            onClick={handleGenerateShoppingList}
-            disabled={!mealPlan || generateShoppingList.isPending}
-            className="flex-1 sm:flex-none h-10"
-          >
-            {generateShoppingList.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <ShoppingCart className="h-4 w-4 mr-2" />
-            )}
-            <span className="hidden sm:inline">장보기 목록</span>
-            <span className="sm:hidden">장보기</span>
-          </Button>
+          <ShoppingListDialog
+            mealPlan={mealPlan || null}
+            slots={mealPlan?.slots || []}
+            onGenerate={handleGenerateShoppingList}
+            isPending={generateShoppingList.isPending}
+          />
           <Button
             variant="outline"
             onClick={handleDeleteAllMeals}

@@ -29,7 +29,9 @@ export function useRecipes(params?: RecipeSearchParams) {
     params?.difficulty || params?.max_prep_time || params?.max_cook_time
 
   if (params?.query) queryParams.set('query', params.query)
-  if (params?.categories?.length) queryParams.set('categories', params.categories.join(','))
+  if (params?.categories?.length) {
+    params.categories.forEach(cat => queryParams.append('categories', cat))
+  }
   if (params?.difficulty) queryParams.set('difficulty', params.difficulty)
   if (params?.max_prep_time) queryParams.set('max_prep_time', params.max_prep_time.toString())
   if (params?.max_cook_time) queryParams.set('max_cook_time', params.max_cook_time.toString())
@@ -60,7 +62,7 @@ export function useRecipe(id: string, options?: UseRecipeOptions) {
   return useQuery({
     queryKey: [RECIPES_KEY, id],
     queryFn: async () => {
-      const response = await api.get<ApiResponse<RecipeWithDetails>>(`/recipes/${id}`)
+      const response = await api.get<ApiResponse<RecipeWithDetails>>(`/recipes/browse/${id}`)
       return response.data
     },
     enabled: isEnabled,
@@ -246,5 +248,33 @@ export function useImportExternalRecipe() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [RECIPES_KEY] })
     },
+  })
+}
+
+// ==================== Browse Recipes (All Users) ====================
+
+const BROWSE_KEY = 'browse-recipes'
+
+export function useBrowseRecipes(params?: RecipeSearchParams) {
+  const queryParams = new URLSearchParams()
+
+  if (params?.query) queryParams.set('query', params.query)
+  if (params?.categories?.length) {
+    params.categories.forEach(cat => queryParams.append('categories', cat))
+  }
+  if (params?.difficulty) queryParams.set('difficulty', params.difficulty)
+  if (params?.max_prep_time) queryParams.set('max_prep_time', params.max_prep_time.toString())
+  if (params?.max_cook_time) queryParams.set('max_cook_time', params.max_cook_time.toString())
+
+  // Pagination (default: 24)
+  queryParams.set('page', (params?.page || 1).toString())
+  queryParams.set('limit', (params?.limit || 24).toString())
+
+  const queryString = queryParams.toString()
+  const endpoint = `/recipes/browse?${queryString}`
+
+  return useQuery({
+    queryKey: [BROWSE_KEY, params],
+    queryFn: () => api.get<PaginatedResponse<Recipe>>(endpoint),
   })
 }

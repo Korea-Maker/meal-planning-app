@@ -71,6 +71,8 @@ async def generate_from_meal_plan(
         user_id,
         data.meal_plan_id,
         data.name,
+        data.dates,
+        data.meal_types,
     )
 
     return ApiResponse(

@@ -1,3 +1,4 @@
+from src.models.cached_recipe import CachedRecipe
 from src.models.ingredient import Ingredient
 from src.models.instruction import Instruction
 from src.models.meal_plan import MealPlan
@@ -10,6 +11,7 @@ from src.models.shopping_list import ShoppingList
 from src.models.user import User
 
 __all__ = [
+    "CachedRecipe",
     "User",
     "Recipe",
     "RecipeRating",

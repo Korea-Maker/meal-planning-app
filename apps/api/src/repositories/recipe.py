@@ -156,7 +156,10 @@ class RecipeRepository(BaseRepository[Recipe]):
             else_=1,
         )
         result = await self.session.execute(
-            select(Recipe).order_by(image_priority, Recipe.created_at.desc()).offset(skip).limit(limit)
+            select(Recipe)
+            .order_by(image_priority, Recipe.created_at.desc())
+            .offset(skip)
+            .limit(limit)
         )
         return list(result.scalars().all()), total
 

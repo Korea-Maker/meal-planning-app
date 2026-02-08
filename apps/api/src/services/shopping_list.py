@@ -122,6 +122,7 @@ class ShoppingListService:
         # Filter slots by dates and meal_types
         if dates:
             from datetime import date as date_type
+
             date_set = {date_type.fromisoformat(d) for d in dates}
             slots = [s for s in slots if s.date in date_set]
 

@@ -18,9 +18,9 @@ function toDisplayUri(uri: string): string {
     safeUri = uri.replace('http://', 'https://');
   }
 
-  // Route TheMealDB images through backend proxy on iOS
-  // iOS native Image loader silently fails for these URLs
-  if (PROXY_BASE && safeUri.includes('themealdb.com')) {
+  // Route external images through backend proxy on iOS
+  // iOS native Image loader silently fails for certain CDN URLs
+  if (PROXY_BASE && (safeUri.includes('themealdb.com') || safeUri.includes('unsplash.com'))) {
     return PROXY_BASE + encodeURIComponent(safeUri);
   }
 

@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -34,7 +34,7 @@ jobs:
 
       - name: Gitleaks 결과 업로드
         if: failure()
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v6
         with:
           name: gitleaks-report
           path: results.sarif
@@ -45,10 +45,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
 
       - name: Python 설정
-        uses: actions/setup-python@v5.3.0
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -67,7 +67,7 @@ jobs:
             --exit-zero
 
       - name: Bandit SARIF 업로드
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: bandit-results.sarif
@@ -94,7 +94,7 @@ jobs:
       image: semgrep/semgrep
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
 
       - name: Semgrep 스캔 실행
         run: |
@@ -110,7 +110,7 @@ jobs:
             . || true
 
       - name: Semgrep SARIF 업로드
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: semgrep.sarif
@@ -130,10 +130,10 @@ jobs:
             type: node
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
 
       - name: Trivy 스캔 실행 - ${{ matrix.target.name }}
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: 'fs'
           scan-ref: ${{ matrix.target.path }}
@@ -143,14 +143,14 @@ jobs:
           exit-code: '0'
 
       - name: Trivy SARIF 업로드 - ${{ matrix.target.name }}
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-${{ matrix.target.type }}-results.sarif'
           category: 'trivy-${{ matrix.target.type }}'
 
       - name: Trivy 스캔 실행 (테이블 형식) - ${{ matrix.target.name }}
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: 'fs'
           scan-ref: ${{ matrix.target.path }}

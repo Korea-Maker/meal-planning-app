@@ -30,10 +30,10 @@ jobs:
 
     steps:
       - name: Checkout 코드
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
 
       - name: Hadolint 실행
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: ${{ env.DOCKERFILE_PATH }}
           format: sarif
@@ -41,14 +41,14 @@ jobs:
           no-fail: true
 
       - name: Hadolint 결과 업로드
-        uses: github/codeql-action/upload-sarif@v3.27.9
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: hadolint-results.sarif
           category: dockerfile-lint
 
       - name: Hadolint 요약 출력
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: ${{ env.DOCKERFILE_PATH }}
           format: tty
@@ -63,13 +63,13 @@ jobs:
 
     steps:
       - name: Checkout 코드
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
 
       - name: Docker Buildx 설정
         uses: docker/setup-buildx-action@v3.7.1
 
       - name: Docker 이미지 빌드
-        uses: docker/build-push-action@v6.10.0
+        uses: docker/build-push-action@v6
         with:
           context: ./apps/api
           file: ${{ env.DOCKERFILE_PATH }}
@@ -79,7 +79,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Grype 취약점 스캔
-        uses: anchore/scan-action@v5.0.0
+        uses: anchore/scan-action@v7.3.2
         id: scan
         with:
           image: ${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -88,14 +88,14 @@ jobs:
           output-format: sarif
 
       - name: 취약점 스캔 결과 업로드
-        uses: github/codeql-action/upload-sarif@v3.27.9
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: ${{ steps.scan.outputs.sarif }}
           category: container-vulnerabilities
 
       - name: Grype 상세 리포트 생성
-        uses: anchore/scan-action@v5.0.0
+        uses: anchore/scan-action@v7.3.2
         if: always()
         with:
           image: ${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -108,13 +108,13 @@ jobs:
 
     steps:
       - name: Checkout 코드
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
 
       - name: Docker Buildx 설정
         uses: docker/setup-buildx-action@v3.7.1
 
       - name: Docker 이미지 빌드
-        uses: docker/build-push-action@v6.10.0
+        uses: docker/build-push-action@v6
         with:
           context: ./apps/api
           file: ${{ env.DOCKERFILE_PATH }}

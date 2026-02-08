@@ -31,10 +31,11 @@ export function RecipeImage({
   if (!src || hasError) {
     return (
       <div className={cn(
-        'w-full h-full bg-gradient-to-br from-primary/5 to-accent/5 flex items-center justify-center',
+        'w-full h-full bg-gradient-to-br from-muted to-muted/80 flex flex-col items-center justify-center gap-1',
         fallbackClassName
       )}>
-        <ChefHat className="h-12 w-12 text-primary/20" />
+        <ChefHat className="h-10 w-10 text-muted-foreground/40" />
+        <span className="text-xs text-muted-foreground/50">이미지 없음</span>
       </div>
     )
   }

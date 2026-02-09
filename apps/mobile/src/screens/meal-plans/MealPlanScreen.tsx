@@ -23,7 +23,7 @@ import {
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 import type { ExternalRecipePreview } from '@meal-planning/shared-types';
 
-const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
 type MealKey = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -72,7 +72,9 @@ export default function MealPlanScreen() {
   const { weekDates, weekStartDate, weekStartDateISO } = useMemo(() => {
     const today = new Date();
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() + weekOffset * 7); // Sunday
+    const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ...
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Monday start
+    startOfWeek.setDate(today.getDate() + mondayOffset + weekOffset * 7);
     startOfWeek.setHours(0, 0, 0, 0);
 
     const dates = Array.from({ length: 7 }, (_, i) => {

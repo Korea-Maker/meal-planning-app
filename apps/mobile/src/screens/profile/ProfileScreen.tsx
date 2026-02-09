@@ -6,12 +6,22 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRecipes, useMealPlans, useShoppingLists } from '../../hooks';
 import { colors, typography, spacing, borderRadius, shadow } from '../../styles';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+
+  const { data: recipesData } = useRecipes();
+  const { data: mealPlansData } = useMealPlans();
+  const { data: shoppingListsData } = useShoppingLists();
+
+  const recipeCount = recipesData?.meta?.total ?? '-';
+  const mealPlanCount = mealPlansData?.meta?.total ?? '-';
+  const shoppingListCount = shoppingListsData?.meta?.total ?? '-';
 
   const handleLogout = () => {
     Alert.alert(
@@ -22,6 +32,31 @@ export default function ProfileScreen() {
         { text: '로그아웃', style: 'destructive', onPress: logout },
       ]
     );
+  };
+
+  const dietaryLabels: Record<string, string> = {
+    vegetarian: '채식',
+    vegan: '비건',
+    gluten_free: '글루텐프리',
+    dairy_free: '유제품 제외',
+    nut_free: '견과류 제외',
+    halal: '할랄',
+    kosher: '코셔',
+    low_carb: '저탄수화물',
+    keto: '키토',
+    paleo: '팔레오',
+  };
+
+  const allergenLabels: Record<string, string> = {
+    eggs: '달걀',
+    milk: '우유',
+    peanuts: '땅콩',
+    tree_nuts: '견과류',
+    fish: '생선',
+    shellfish: '갑각류',
+    wheat: '밀',
+    soy: '대두',
+    sesame: '참깨',
   };
 
   const menuItems = [
@@ -44,25 +79,56 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.userName}>{user?.name || '사용자'}</Text>
         <Text style={styles.userEmail}>{user?.email || ''}</Text>
+        {user?.servings_default && (
+          <Text style={styles.userDetail}>기본 인분: {user.servings_default}인분</Text>
+        )}
       </View>
 
       {/* Stats */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>12</Text>
+          <Text style={styles.statValue}>{recipeCount}</Text>
           <Text style={styles.statLabel}>레시피</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>8</Text>
+          <Text style={styles.statValue}>{mealPlanCount}</Text>
           <Text style={styles.statLabel}>식사 계획</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>5</Text>
+          <Text style={styles.statValue}>{shoppingListCount}</Text>
           <Text style={styles.statLabel}>장보기 목록</Text>
         </View>
       </View>
+
+      {/* Dietary Restrictions */}
+      {user?.dietary_restrictions && user.dietary_restrictions.length > 0 && (
+        <View style={styles.infoSection}>
+          <Text style={styles.infoSectionTitle}>🥗 식이 제한</Text>
+          <View style={styles.tagContainer}>
+            {user.dietary_restrictions.map((item) => (
+              <View key={item} style={styles.tag}>
+                <Text style={styles.tagText}>{dietaryLabels[item] || item}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* Allergens */}
+      {user?.allergens && user.allergens.length > 0 && (
+        <View style={styles.infoSection}>
+          <Text style={styles.infoSectionTitle}>⚠️ 알러지</Text>
+          <View style={styles.tagContainer}>
+            {user.allergens.map((item) => (
+              <View key={item} style={[styles.tag, styles.allergenTag]}>
+                <Text style={[styles.tagText, styles.allergenTagText]}>{allergenLabels[item] || item}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Menu Items */}
       <View style={styles.menuContainer}>
@@ -124,6 +190,11 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
   },
+  userDetail: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
   statsContainer: {
     flexDirection: 'row',
     backgroundColor: colors.card,
@@ -149,6 +220,44 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     backgroundColor: colors.border,
+  },
+  infoSection: {
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    ...shadow.sm,
+  },
+  infoSectionTitle: {
+    ...typography.label,
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  tagContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  tag: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primaryLight,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  tagText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  allergenTag: {
+    backgroundColor: colors.errorLight,
+    borderColor: colors.error,
+  },
+  allergenTagText: {
+    color: colors.error,
   },
   menuContainer: {
     marginTop: spacing.lg,

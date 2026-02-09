@@ -51,7 +51,7 @@
     "@meal-planning/shared-types": "workspace:*",
     "@playwright/test": "^1.58.0",
     "@testing-library/react": "^16.2.0",
-    "@types/node": "^22.13.0",
+    "@types/node": "^25.2.2",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "autoprefixer": "^10.4.20",

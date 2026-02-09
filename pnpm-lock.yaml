@@ -25,9 +25,6 @@ importers:
 
   apps/mobile:
     dependencies:
-      '@meal-planning/constants':
-        specifier: workspace:*
-        version: link:../../packages/constants
       '@meal-planning/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -228,9 +225,6 @@ importers:
         specifier: ^3.24.1
         version: 3.25.76
     devDependencies:
-      '@meal-planning/constants':
-        specifier: workspace:*
-        version: link:../../packages/constants
       '@meal-planning/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types

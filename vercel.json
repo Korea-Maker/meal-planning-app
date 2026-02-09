@@ -1,17 +1,3 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "builds": [
-    {
-      "src": "apps/web/package.json",
-      "use": "@vercel/next",
-      "config": {
-        "installCommand": "cd ../.. && pnpm install",
-        "buildCommand": "cd ../.. && pnpm turbo build --filter=@meal-planning/web"
-      }
-    }
-  ],
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/apps/web/$1" }
-  ],
-  "public": true
+  "$schema": "https://openapi.vercel.sh/vercel.json"
 }

@@ -535,13 +535,9 @@ async def translate_with_openai(source: str = "all") -> dict[str, int]:
 
         from src.models.cached_recipe import CachedRecipe
 
-        title_query = select(CachedRecipe).where(
-            CachedRecipe.title == CachedRecipe.title_original
-        )
+        title_query = select(CachedRecipe).where(CachedRecipe.title == CachedRecipe.title_original)
         if source_filter:
-            title_query = title_query.where(
-                CachedRecipe.external_source == source_filter
-            )
+            title_query = title_query.where(CachedRecipe.external_source == source_filter)
         result = await session.execute(title_query)
         title_recipes = list(result.scalars().all())
 
@@ -575,9 +571,7 @@ async def translate_with_openai(source: str = "all") -> dict[str, int]:
         # --- Pass 2: Full translate recipes with English ingredients ---
         ing_query = select(CachedRecipe)
         if source_filter:
-            ing_query = ing_query.where(
-                CachedRecipe.external_source == source_filter
-            )
+            ing_query = ing_query.where(CachedRecipe.external_source == source_filter)
         result = await session.execute(ing_query)
         all_recipes = list(result.scalars().all())
 
@@ -607,8 +601,7 @@ async def translate_with_openai(source: str = "all") -> dict[str, int]:
                     await session.commit()
 
                 logger.info(
-                    f"  [{idx + 1}/{len(need_full)}] "
-                    f"{recipe.title_original} -> {recipe.title}"
+                    f"  [{idx + 1}/{len(need_full)}] {recipe.title_original} -> {recipe.title}"
                 )
             except Exception as e:
                 logger.error(f"  Full translate failed for {recipe.external_id}: {e}")

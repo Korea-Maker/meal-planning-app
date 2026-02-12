@@ -64,7 +64,27 @@ export function AutoFillDialog({
   const [isLoading, setIsLoading] = useState(false)
 
   const queryClient = useQueryClient()
-  const { data: discoverData } = useDiscoverRecipes(cuisine ? { cuisine } : undefined)
+  const { data: breakfastData, isFetching: isBreakfastFetching } = useDiscoverRecipes(
+    selectedMealTypes.includes('breakfast')
+      ? { cuisine: cuisine || undefined, meal_type: 'breakfast' }
+      : undefined
+  )
+  const { data: lunchData, isFetching: isLunchFetching } = useDiscoverRecipes(
+    selectedMealTypes.includes('lunch')
+      ? { cuisine: cuisine || undefined, meal_type: 'lunch' }
+      : undefined
+  )
+  const { data: dinnerData, isFetching: isDinnerFetching } = useDiscoverRecipes(
+    selectedMealTypes.includes('dinner')
+      ? { cuisine: cuisine || undefined, meal_type: 'dinner' }
+      : undefined
+  )
+  const { data: snackData, isFetching: isSnackFetching } = useDiscoverRecipes(
+    selectedMealTypes.includes('snack')
+      ? { cuisine: cuisine || undefined, meal_type: 'snack' }
+      : undefined
+  )
+  const isDiscoverFetching = isBreakfastFetching || isLunchFetching || isDinnerFetching || isSnackFetching
   const createMealPlan = useCreateMealPlan()
 
   const handleMealTypeToggle = (mealType: MealType) => {
@@ -81,13 +101,32 @@ export function AutoFillDialog({
       return
     }
 
-    const recipes = [
-      ...(discoverData?.korean_seed || []),
-      ...(discoverData?.spoonacular || []),
-      ...(discoverData?.themealdb || []),
-    ]
+    // Build meal-type-specific recipe pools
+    const recipesByMealType: Record<MealType, Array<{ source: string; external_id: string }>> = {
+      breakfast: [
+        ...(breakfastData?.korean_seed || []),
+        ...(breakfastData?.spoonacular || []),
+        ...(breakfastData?.themealdb || []),
+      ],
+      lunch: [
+        ...(lunchData?.korean_seed || []),
+        ...(lunchData?.spoonacular || []),
+        ...(lunchData?.themealdb || []),
+      ],
+      dinner: [
+        ...(dinnerData?.korean_seed || []),
+        ...(dinnerData?.spoonacular || []),
+        ...(dinnerData?.themealdb || []),
+      ],
+      snack: [
+        ...(snackData?.korean_seed || []),
+        ...(snackData?.spoonacular || []),
+        ...(snackData?.themealdb || []),
+      ],
+    }
 
-    if (recipes.length === 0) {
+    const hasAnyRecipes = selectedMealTypes.some(mt => recipesByMealType[mt].length > 0)
+    if (!hasAnyRecipes) {
       toast({ title: '추천 레시피가 없습니다', variant: 'destructive' })
       return
     }
@@ -127,14 +166,30 @@ export function AutoFillDialog({
         return
       }
 
-      // Quick plan API 호출
-      const quickPlanSlots = slotsToFill.map((slot, idx) => ({
-        source: recipes[idx % recipes.length].source,
-        external_id: recipes[idx % recipes.length].external_id,
-        date: slot.date,
-        meal_type: slot.meal_type,
-        servings: 2,
-      }))
+      // Track index per meal type for cycling
+      const mealTypeIndex: Record<MealType, number> = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 }
+
+      const quickPlanSlots = slotsToFill
+        .map((slot) => {
+          const pool = recipesByMealType[slot.meal_type]
+          if (pool.length === 0) return null
+          const recipe = pool[mealTypeIndex[slot.meal_type] % pool.length]
+          mealTypeIndex[slot.meal_type]++
+          return {
+            source: recipe.source,
+            external_id: recipe.external_id,
+            date: slot.date,
+            meal_type: slot.meal_type,
+            servings: 2,
+          }
+        })
+        .filter((s): s is NonNullable<typeof s> => s !== null)
+
+      if (quickPlanSlots.length === 0) {
+        toast({ title: '채울 수 있는 레시피가 없습니다' })
+        onOpenChange(false)
+        return
+      }
 
       await api.post('/meal-plans/quick-plan', {
         week_start_date: weekStart,
@@ -219,7 +274,7 @@ export function AutoFillDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             취소
           </Button>
-          <Button onClick={handleAutoFill} disabled={selectedMealTypes.length === 0 || isLoading}>
+          <Button onClick={handleAutoFill} disabled={selectedMealTypes.length === 0 || isLoading || isDiscoverFetching}>
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

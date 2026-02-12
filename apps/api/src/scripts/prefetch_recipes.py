@@ -28,6 +28,7 @@ from src.core.database import async_session_maker
 from src.core.redis import RedisClient
 from src.models.base import utc_now
 from src.repositories.cached_recipe import CachedRecipeRepository
+from src.services.meal_type_tagger import classify_meal_types
 from src.services.translation import TranslationService
 
 logging.basicConfig(
@@ -153,6 +154,12 @@ async def fetch_themealdb(
                     "difficulty": details.get("difficulty", "medium"),
                     "categories": details.get("categories", []),
                     "tags": details.get("tags", []),
+                    "meal_types": classify_meal_types(
+                        title=details.get("title", ""),
+                        title_original=title_original,
+                        categories=details.get("categories", []),
+                        tags=details.get("tags", []),
+                    ),
                     "source_url": details.get("source_url"),
                     "ingredients_json": details.get("ingredients", []),
                     "instructions_json": details.get("instructions", []),
@@ -310,6 +317,12 @@ async def fetch_spoonacular(
                             "difficulty": details.get("difficulty", "medium"),
                             "categories": details.get("categories", []),
                             "tags": details.get("tags", []),
+                            "meal_types": classify_meal_types(
+                                title=details.get("title", ""),
+                                title_original=title_original,
+                                categories=details.get("categories", []),
+                                tags=details.get("tags", []),
+                            ),
                             "source_url": details.get("source_url"),
                             "ingredients_json": details.get("ingredients", []),
                             "instructions_json": details.get("instructions", []),

@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RecipeFiltersComponent, type RecipeFilters } from '@/components/recipes/recipe-filters'
-import { URLImportDialog } from '@/components/recipes/url-import-dialog'
 import { DiscoverSection } from '@/components/recipes/discover-section'
+import { RecipeSpeedDial } from '@/components/recipes/recipe-speed-dial'
 import { FavoriteButton } from '@/components/recipes/favorite-button'
 import { RecipeStats } from '@/components/recipes/recipe-stats'
 import { RecipeImage } from '@/components/recipes/recipe-image'
@@ -123,16 +123,6 @@ export default function RecipesPage() {
           </div>
           <p className="text-muted-foreground ml-13">다양한 레시피를 탐색하고 관리하세요</p>
         </div>
-        {activeTab === 'mine' && (
-          <div className="flex gap-2">
-            <URLImportDialog />
-            <Button asChild variant="gradient">
-              <Link href="/recipes/new">
-                <Plus className="h-4 w-4 mr-2" />새 레시피
-              </Link>
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Tab Navigation */}
@@ -335,6 +325,7 @@ export default function RecipesPage() {
           )}
         </TabsContent>
       </Tabs>
+      {activeTab === 'mine' && <RecipeSpeedDial />}
     </div>
   )
 }

@@ -23,6 +23,7 @@ import ProfileScreen from './src/screens/profile/ProfileScreen';
 import RecipeDetailScreen from './src/screens/recipes/RecipeDetailScreen';
 import RecipeFormScreen from './src/screens/recipes/RecipeFormScreen';
 import ExternalRecipeDetailScreen from './src/screens/recipes/ExternalRecipeDetailScreen';
+import URLImportScreen from './src/screens/recipes/URLImportScreen';
 import AddMealScreen from './src/screens/meal-plans/AddMealScreen';
 import ShoppingListDetailScreen from './src/screens/shopping-lists/ShoppingListDetailScreen';
 
@@ -69,6 +70,8 @@ function DetailScreenRenderer({ screenName, params }: { screenName: string; para
       return <RecipeFormScreen route={route as any} />;
     case 'ExternalRecipeDetail':
       return <ExternalRecipeDetailScreen route={route as any} />;
+    case 'URLImport':
+      return <URLImportScreen route={route as any} />;
     case 'MealPlanRecipeDetail':
       return <RecipeDetailScreen route={route as any} />;
     case 'AddMeal':

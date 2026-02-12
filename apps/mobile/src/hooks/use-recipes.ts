@@ -149,6 +149,7 @@ const EXTERNAL_RECIPES_KEY = 'external-recipes';
 export interface DiscoverParams {
   category?: string;
   cuisine?: string;
+  meal_type?: string;
   number?: number;
 }
 
@@ -156,6 +157,7 @@ export function useDiscoverRecipes(params?: DiscoverParams) {
   const parts: string[] = [];
   if (params?.category) parts.push(`category=${encodeURIComponent(params.category)}`);
   if (params?.cuisine) parts.push(`cuisine=${encodeURIComponent(params.cuisine)}`);
+  if (params?.meal_type) parts.push(`meal_type=${encodeURIComponent(params.meal_type)}`);
   if (params?.number) parts.push(`number=${params.number}`);
 
   const queryString = parts.join('&');
@@ -194,5 +196,19 @@ export function useExternalRecipeDetail(source: string, externalId: string, opti
       return response.data;
     },
     enabled: isEnabled,
+  });
+}
+
+export function useExtractRecipeFromUrl() {
+  return useMutation({
+    mutationFn: async (data: { url: string }) => {
+      return api.post<{
+        success: boolean;
+        recipe?: CreateRecipeRequest;
+        confidence: number;
+        extraction_method?: string;
+        error?: string;
+      }>('/recipes/extract-from-url', data);
+    },
   });
 }

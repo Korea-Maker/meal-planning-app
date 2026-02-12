@@ -113,6 +113,7 @@ class ExternalRecipePreview(BaseModel):
     summary: str | None = None
     category: str | None = None
     area: str | None = None
+    meal_types: list[str] = Field(default_factory=list)
 
 
 class ExternalRecipeDetail(BaseModel):

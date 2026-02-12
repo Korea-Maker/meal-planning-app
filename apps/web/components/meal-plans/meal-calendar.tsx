@@ -415,76 +415,93 @@ export function MealCalendar() {
     </div>
   )
 
-  // Mobile view (below md): Date tabs + single day card
+  // Mobile view (below md): Grid calendar matching mobile app style
   const renderMobileView = () => {
-    const selectedDay = weekDays[selectedDayIndex]
-    const dateStr = format(selectedDay, 'yyyy-MM-dd')
+    const MOBILE_DAYS = ['월', '화', '수', '목', '금', '토', '일']
 
     return (
-      <div className="md:hidden space-y-4">
-        {/* Date selector tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="md:hidden space-y-0">
+        {/* Day Headers */}
+        <div className="flex bg-card border-b border-border">
+          <div className="w-[52px] shrink-0" />
           {weekDays.map((day, idx) => {
             const isToday = isDateToday(day)
-            const isSelected = selectedDayIndex === idx
-
             return (
-              <button
-                key={day.toISOString()}
-                onClick={() => setSelectedDayIndex(idx)}
-                className={`
-                  flex-shrink-0 flex flex-col items-center px-4 py-3 rounded-xl transition-all
-                  ${
-                    isSelected
-                      ? 'bg-primary text-primary-foreground shadow-lg scale-105'
-                      : isToday
-                      ? 'bg-primary/10 border-2 border-primary'
-                      : 'bg-card border border-border hover:bg-muted'
-                  }
-                `}
+              <div
+                key={idx}
+                className={`flex-1 text-center py-2 ${isToday ? 'bg-primary/10 rounded-md mx-0.5' : ''}`}
               >
-                <span className={`text-xs font-medium ${isSelected ? '' : 'text-muted-foreground'}`}>
-                  {WEEKDAYS[day.getDay()]}
-                </span>
-                <span className="text-lg font-bold">{format(day, 'd')}</span>
-              </button>
+                <p className={`text-[11px] font-medium ${isToday ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
+                  {MOBILE_DAYS[idx]}
+                </p>
+                <p className={`text-[11px] ${isToday ? 'text-primary font-semibold' : 'text-muted-foreground/70'}`}>
+                  {format(day, 'M/d')}
+                </p>
+              </div>
             )
           })}
         </div>
 
-        {/* Single day card */}
-        <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
-          <div
-            className={`text-center py-4 ${
-              isDateToday(selectedDay)
-                ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground'
-                : 'bg-muted/50'
-            }`}
-          >
-            <p className="text-2xl font-bold">
-              {format(selectedDay, 'M월 d일 EEEE', { locale: ko })}
-            </p>
-          </div>
-
-          <div className="p-4 space-y-4">
-            {MEAL_TYPES.map((mealType) => {
-              const droppableId = `${dateStr}-${mealType.value}`
-              const slots = slotsByDateAndType.get(droppableId) || []
+        {/* Meal Type Rows */}
+        {MEAL_TYPES.map((mealType) => (
+          <div key={mealType.value} className="flex border-b border-border">
+            {/* Meal type label */}
+            <div className="w-[52px] shrink-0 flex flex-col items-center justify-center py-2">
+              <span className="text-base">{mealType.icon}</span>
+              <span className="text-[10px] text-muted-foreground">{mealType.label}</span>
+            </div>
+            {/* Day cells */}
+            {weekDays.map((day, idx) => {
+              const dateStr = format(day, 'yyyy-MM-dd')
+              const key = `${dateStr}-${mealType.value}`
+              const slots = slotsByDateAndType.get(key) || []
+              const slot = slots[0]
+              const colors = MEAL_COLORS[mealType.value]
 
               return (
-                <DroppableMealSection
-                  key={mealType.value}
-                  droppableId={droppableId}
-                  mealType={mealType}
-                  slots={slots}
-                  onAdd={() => handleSlotClick(selectedDay, mealType.value)}
-                  onDelete={handleDeleteSlot}
-                  onDrop={handleDrop}
-                  onRecipeClick={handleRecipeClick}
-                />
+                <button
+                  key={idx}
+                  onClick={() => slot ? handleRecipeClick(slot.recipe.id) : handleSlotClick(day, mealType.value)}
+                  className={`
+                    flex-1 min-h-[56px] mx-0.5 my-1 rounded-md border text-center flex flex-col items-center justify-center p-1 transition-all
+                    ${slot
+                      ? `${colors.bg} ${colors.border} border-solid shadow-sm active:scale-95`
+                      : 'border-dashed border-border/60 active:bg-muted'
+                    }
+                  `}
+                >
+                  {slot ? (
+                    <>
+                      <span className={`text-[10px] font-semibold leading-tight line-clamp-2 ${colors.text}`}>
+                        {slot.recipe.title}
+                      </span>
+                      {slot.servings && (
+                        <span className="text-[9px] text-muted-foreground mt-0.5">{slot.servings}인분</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-lg text-muted-foreground/40">+</span>
+                  )}
+                </button>
               )
             })}
           </div>
+        ))}
+
+        {/* Generate Shopping List Button */}
+        <div className="p-4">
+          <Button
+            onClick={() => mealPlan?.id && handleGenerateShoppingList({ mealPlanId: mealPlan.id })}
+            disabled={!mealPlan || !mealPlan.slots?.length || generateShoppingList.isPending}
+            className="w-full h-12 rounded-xl"
+          >
+            {generateShoppingList.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <ShoppingCart className="h-4 w-4 mr-2" />
+            )}
+            장보기 목록 생성
+          </Button>
         </div>
       </div>
     )

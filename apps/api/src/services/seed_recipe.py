@@ -36,24 +36,37 @@ def _load_seed_data() -> dict[str, Any]:
 
 def _normalize_recipe(recipe: dict[str, Any]) -> dict[str, Any]:
     """Convert seed recipe format to API schema format."""
+    from src.services.meal_type_tagger import classify_meal_types
+
+    title = recipe.get("title", "")
+    categories = recipe.get("categories", [])
+    tags = recipe.get("tags", [])
+
+    meal_types = classify_meal_types(
+        title=title,
+        categories=categories,
+        tags=tags,
+    )
+
     return {
         "source": "korean_seed",
         "external_id": recipe.get("id", ""),
-        "title": recipe.get("title", ""),
+        "title": title,
         "description": recipe.get("description"),
         "image_url": recipe.get("image_url"),
         "prep_time_minutes": recipe.get("prep_time_minutes"),
         "cook_time_minutes": recipe.get("cook_time_minutes"),
         "servings": recipe.get("servings", 4),
         "difficulty": recipe.get("difficulty", "medium"),
-        "categories": recipe.get("categories", []),
-        "tags": recipe.get("tags", []),
+        "categories": categories,
+        "tags": tags,
         "ingredients": recipe.get("ingredients", []),
         "instructions": recipe.get("instructions", []),
         "calories": recipe.get("calories"),
         "protein_grams": recipe.get("protein_grams"),
         "carbs_grams": recipe.get("carbs_grams"),
         "fat_grams": recipe.get("fat_grams"),
+        "meal_types": meal_types,
     }
 
 

@@ -114,8 +114,27 @@ export default function MealPlanScreen() {
   const [isAutoFilling, setIsAutoFilling] = useState(false);
 
   // Fetch discover recipes when cuisine is selected (or default)
-  const discoverParams = autoFillModalVisible ? (selectedCuisine ? { cuisine: selectedCuisine } : {}) : undefined;
-  const { data: discoverData, isLoading: isDiscoverLoading, isFetching: isDiscoverFetching } = useDiscoverRecipes(discoverParams);
+  const { data: breakfastData, isFetching: isBreakfastFetching } = useDiscoverRecipes(
+    autoFillModalVisible && selectedMealTypes.includes('breakfast')
+      ? { cuisine: selectedCuisine || undefined, meal_type: 'breakfast' }
+      : undefined
+  );
+  const { data: lunchData, isFetching: isLunchFetching } = useDiscoverRecipes(
+    autoFillModalVisible && selectedMealTypes.includes('lunch')
+      ? { cuisine: selectedCuisine || undefined, meal_type: 'lunch' }
+      : undefined
+  );
+  const { data: dinnerData, isFetching: isDinnerFetching } = useDiscoverRecipes(
+    autoFillModalVisible && selectedMealTypes.includes('dinner')
+      ? { cuisine: selectedCuisine || undefined, meal_type: 'dinner' }
+      : undefined
+  );
+  const { data: snackData, isFetching: isSnackFetching } = useDiscoverRecipes(
+    autoFillModalVisible && selectedMealTypes.includes('snack')
+      ? { cuisine: selectedCuisine || undefined, meal_type: 'snack' }
+      : undefined
+  );
+  const isDiscoverFetching = isBreakfastFetching || isLunchFetching || isDinnerFetching || isSnackFetching;
 
   const toggleMealType = useCallback((mealType: MealKey) => {
     setSelectedMealTypes((prev) =>
@@ -131,18 +150,37 @@ export default function MealPlanScreen() {
       return;
     }
 
-    if (isDiscoverLoading || isDiscoverFetching) {
+    if (isDiscoverFetching) {
       Alert.alert('알림', '추천 레시피를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
       return;
     }
 
-    const recipes: ExternalRecipePreview[] = [
-      ...(discoverData?.korean_seed || []),
-      ...(discoverData?.spoonacular || []),
-      ...(discoverData?.themealdb || []),
-    ];
+    // Build meal-type-specific recipe pools
+    const recipesByMealType: Record<MealKey, ExternalRecipePreview[]> = {
+      breakfast: [
+        ...(breakfastData?.korean_seed || []),
+        ...(breakfastData?.spoonacular || []),
+        ...(breakfastData?.themealdb || []),
+      ],
+      lunch: [
+        ...(lunchData?.korean_seed || []),
+        ...(lunchData?.spoonacular || []),
+        ...(lunchData?.themealdb || []),
+      ],
+      dinner: [
+        ...(dinnerData?.korean_seed || []),
+        ...(dinnerData?.spoonacular || []),
+        ...(dinnerData?.themealdb || []),
+      ],
+      snack: [
+        ...(snackData?.korean_seed || []),
+        ...(snackData?.spoonacular || []),
+        ...(snackData?.themealdb || []),
+      ],
+    };
 
-    if (recipes.length === 0) {
+    const hasAnyRecipes = selectedMealTypes.some(mt => recipesByMealType[mt].length > 0);
+    if (!hasAnyRecipes) {
       Alert.alert('알림', '추천 레시피가 없습니다. 다른 요리 종류를 선택해보세요.');
       return;
     }
@@ -187,14 +225,31 @@ export default function MealPlanScreen() {
         return;
       }
 
-      // Build quick plan slots
-      const quickPlanSlots = slotsToFill.map((slot, idx) => ({
-        source: recipes[idx % recipes.length].source,
-        external_id: recipes[idx % recipes.length].external_id,
-        date: slot.date,
-        meal_type: slot.meal_type,
-        servings: 2,
-      }));
+      // Track index per meal type for cycling through recipes
+      const mealTypeIndex: Record<MealKey, number> = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
+
+      const quickPlanSlots = slotsToFill
+        .map((slot) => {
+          const pool = recipesByMealType[slot.meal_type];
+          if (pool.length === 0) return null;
+          const recipe = pool[mealTypeIndex[slot.meal_type] % pool.length];
+          mealTypeIndex[slot.meal_type]++;
+          return {
+            source: recipe.source,
+            external_id: recipe.external_id,
+            date: slot.date,
+            meal_type: slot.meal_type,
+            servings: 2,
+          };
+        })
+        .filter((s): s is NonNullable<typeof s> => s !== null);
+
+      if (quickPlanSlots.length === 0) {
+        Alert.alert('알림', '채울 수 있는 레시피가 없습니다.');
+        setAutoFillModalVisible(false);
+        setIsAutoFilling(false);
+        return;
+      }
 
       await quickPlan.mutateAsync({
         week_start_date: weekStartDateISO,
@@ -208,7 +263,7 @@ export default function MealPlanScreen() {
     } finally {
       setIsAutoFilling(false);
     }
-  }, [selectedMealTypes, discoverData, mealPlan, weekStartDate, weekStartDateISO, quickPlan, isDiscoverLoading, isDiscoverFetching]);
+  }, [selectedMealTypes, breakfastData, lunchData, dinnerData, snackData, mealPlan, weekStartDate, weekStartDateISO, quickPlan, isDiscoverFetching]);
 
   // Helper functions
   const formatDate = (date: Date) => {

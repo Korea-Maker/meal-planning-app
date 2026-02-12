@@ -43,6 +43,7 @@ export default function RecipeListScreen() {
   const [activeSection, setActiveSection] = useState<'discover' | 'browse' | 'mine'>('discover');
   const [discoverCuisine, setDiscoverCuisine] = useState<string>('');
   const [discoverCategory, setDiscoverCategory] = useState<string>('');
+  const [fabOpen, setFabOpen] = useState(false);
 
   const { data: discoverData, isLoading: isDiscoverLoading, refetch: refetchDiscover } = useDiscoverRecipes(
     activeSection === 'discover' ? {
@@ -383,13 +384,48 @@ export default function RecipeListScreen() {
         }
       />
 
-          {/* FAB for adding recipe */}
-          <TouchableOpacity
-            style={styles.fab}
-            onPress={() => navigation.navigate('RecipeForm', {})}
-          >
-            <Text style={styles.fabText}>+</Text>
-          </TouchableOpacity>
+          {/* FAB - only on mine tab */}
+          {activeSection === 'mine' && (
+            <>
+              {fabOpen && (
+                <TouchableOpacity
+                  style={styles.fabBackdrop}
+                  activeOpacity={1}
+                  onPress={() => setFabOpen(false)}
+                />
+              )}
+
+              {fabOpen && (
+                <View style={styles.fabMenu}>
+                  <TouchableOpacity
+                    style={styles.fabMenuItem}
+                    onPress={() => { setFabOpen(false); navigation.navigate('URLImport', {}); }}
+                  >
+                    <Text style={styles.fabMenuLabel}>URL에서 가져오기</Text>
+                    <View style={styles.fabMenuIcon}>
+                      <Text style={styles.fabMenuIconText}>🔗</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.fabMenuItem}
+                    onPress={() => { setFabOpen(false); navigation.navigate('RecipeForm', {}); }}
+                  >
+                    <Text style={styles.fabMenuLabel}>새 레시피</Text>
+                    <View style={styles.fabMenuIcon}>
+                      <Text style={styles.fabMenuIconText}>📝</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.fab}
+                onPress={() => setFabOpen(!fabOpen)}
+              >
+                <Text style={[styles.fabText, fabOpen && styles.fabTextRotated]}>+</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </>
       )}
     </View>
@@ -572,6 +608,52 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: colors.textLight,
     fontWeight: '300',
+  },
+  fabTextRotated: {
+    transform: [{ rotate: '45deg' }],
+  },
+  fabBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  fabMenu: {
+    position: 'absolute',
+    right: spacing.xl,
+    bottom: spacing.xl + 56 + 12,
+    alignItems: 'flex-end',
+    gap: 10,
+  },
+  fabMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  fabMenuLabel: {
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.text,
+    ...shadow.sm,
+    overflow: 'hidden',
+  },
+  fabMenuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadow.sm,
+  },
+  fabMenuIconText: {
+    fontSize: 18,
   },
   segmentContainer: {
     flexDirection: 'row',

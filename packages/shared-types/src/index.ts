@@ -317,6 +317,7 @@ export interface ExternalRecipePreview {
   summary?: string
   category?: string
   area?: string
+  meal_types?: string[]
 }
 
 export interface ExternalRecipeDetail {

@@ -31,6 +31,7 @@ class CachedRecipe(BaseModel):
     # Classification
     categories: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
     tags: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    meal_types: Mapped[list[str] | None] = mapped_column(ARRAY(String(20)), nullable=True)
     source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # Recipe data as JSONB (avoids child table proliferation for cache)

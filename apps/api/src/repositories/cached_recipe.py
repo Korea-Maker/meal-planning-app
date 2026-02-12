@@ -96,6 +96,7 @@ class CachedRecipeRepository(BaseRepository[CachedRecipe]):
         category: str | None = None,
         cuisine: str | None = None,
         source: str | None = None,
+        meal_type: str | None = None,
         limit: int = 20,
     ) -> list[CachedRecipe]:
         """Get recipes for discovery (random order)."""
@@ -109,6 +110,9 @@ class CachedRecipeRepository(BaseRepository[CachedRecipe]):
 
         if cuisine:
             stmt = stmt.where(CachedRecipe.tags.overlap([cuisine.lower()]))
+
+        if meal_type:
+            stmt = stmt.where(CachedRecipe.meal_types.overlap([meal_type]))
 
         stmt = stmt.order_by(func.random()).limit(limit)
         result = await self.session.execute(stmt)

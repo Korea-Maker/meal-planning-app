@@ -134,6 +134,7 @@ const EXTERNAL_RECIPES_KEY = 'external-recipes'
 export interface DiscoverParams {
   category?: string
   cuisine?: string
+  meal_type?: string
   number?: number
 }
 
@@ -142,6 +143,7 @@ export function useDiscoverRecipes(params?: DiscoverParams) {
 
   if (params?.category) queryParams.set('category', params.category)
   if (params?.cuisine) queryParams.set('cuisine', params.cuisine)
+  if (params?.meal_type) queryParams.set('meal_type', params.meal_type)
   if (params?.number) queryParams.set('number', params.number.toString())
 
   const queryString = queryParams.toString()

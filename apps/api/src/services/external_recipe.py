@@ -19,6 +19,7 @@ from src.repositories.recipe import RecipeRepository
 from src.schemas.ingredient import IngredientCreate
 from src.schemas.instruction import InstructionCreate
 from src.schemas.recipe import RecipeCreate
+from src.services.meal_type_tagger import classify_meal_types
 from src.services.seed_recipe import seed_recipe_service
 from src.services.translation import TranslationService
 
@@ -46,6 +47,7 @@ class ExternalRecipeService:
         user_id: str,
         category: str | None = None,
         cuisine: str | None = None,
+        meal_type: str | None = None,
         number: int = 20,
     ) -> dict[str, Any]:
         """
@@ -56,12 +58,13 @@ class ExternalRecipeService:
             user_id: User ID for rate limiting
             category: Filter by category
             cuisine: Filter by cuisine/area
+            meal_type: Filter by meal type
             number: Number of recipes per source
 
         Returns:
             Combined results from all sources
         """
-        cache_key = f"{CACHE_KEY_PREFIX}:discover:{category}:{cuisine}:{number}"
+        cache_key = f"{CACHE_KEY_PREFIX}:discover:{category}:{cuisine}:{meal_type}:{number}"
         cached = await self._get_cached(cache_key)
         if cached:
             return cached
@@ -80,10 +83,10 @@ class ExternalRecipeService:
         cached_spoonacular = None
         try:
             cached_themealdb = await self.cached_repo.get_discover(
-                category=category, cuisine=cuisine, source="themealdb", limit=per_source
+                category=category, cuisine=cuisine, source="themealdb", meal_type=meal_type, limit=per_source
             )
             cached_spoonacular = await self.cached_repo.get_discover(
-                category=category, cuisine=cuisine, source="spoonacular", limit=per_source
+                category=category, cuisine=cuisine, source="spoonacular", meal_type=meal_type, limit=per_source
             )
         except Exception:
             logger.debug("Cached recipes table not available, falling back to API")
@@ -97,7 +100,24 @@ class ExternalRecipeService:
         include_korean_seed = not cuisine or "korean" in cuisine.lower()
         if seed_recipe_service.is_configured and include_korean_seed:
             try:
-                if category:
+                if meal_type:
+                    # Filter ALL recipes by meal_type first, then sample
+                    all_seed = seed_recipe_service.get_all_recipes()
+                    if category:
+                        cat_lower = category.lower()
+                        all_seed = [
+                            r for r in all_seed
+                            if cat_lower in [c.lower() for c in r.get("categories", [])]
+                        ]
+                    seed_list = [
+                        r for r in all_seed
+                        if meal_type in r.get("meal_types", [])
+                    ]
+                    import random as _random
+
+                    _random.shuffle(seed_list)
+                    results["korean_seed"] = seed_list[:per_source]
+                elif category:
                     seed_results = seed_recipe_service.search_recipes(
                         category=category,
                         number=per_source,
@@ -129,6 +149,20 @@ class ExternalRecipeService:
                     if isinstance(spoon_results, dict)
                     else spoon_results
                 )
+
+                # Filter live results by meal_type
+                if meal_type and results["spoonacular"]:
+                    filtered = []
+                    for r in results["spoonacular"]:
+                        mt = classify_meal_types(
+                            title=r.get("title", ""),
+                            categories=r.get("categories", []),
+                            tags=r.get("tags", []),
+                        )
+                        if meal_type in mt:
+                            r["meal_types"] = mt
+                            filtered.append(r)
+                    results["spoonacular"] = filtered
             except Exception as e:
                 logger.error(f"Spoonacular discover error: {e}")
 
@@ -144,6 +178,20 @@ class ExternalRecipeService:
                     mealdb_results = await themealdb_adapter.get_random_recipes(per_source)
 
                 results["themealdb"] = mealdb_results[:per_source]
+
+                # Filter live results by meal_type
+                if meal_type and results["themealdb"]:
+                    filtered = []
+                    for r in results["themealdb"]:
+                        mt = classify_meal_types(
+                            title=r.get("title", ""),
+                            categories=r.get("categories", []),
+                            tags=r.get("tags", []),
+                        )
+                        if meal_type in mt:
+                            r["meal_types"] = mt
+                            filtered.append(r)
+                    results["themealdb"] = filtered
             except Exception as e:
                 logger.error(f"TheMealDB discover error: {e}")
 
@@ -613,6 +661,7 @@ class ExternalRecipeService:
             "servings": cached.servings,
             "difficulty": cached.difficulty,
             "calories": cached.calories,
+            "meal_types": cached.meal_types or [],
         }
 
     @staticmethod

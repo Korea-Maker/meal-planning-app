@@ -47,12 +47,14 @@ jobs:
         working-directory: ./apps/api
         run: uv sync --extra dev
 
+      - name: 공유 패키지 빌드
+        run: pnpm --filter './packages/*' build
+
       - name: ESLint (Frontend)
         run: pnpm --filter web lint
 
       - name: TypeScript 타입 체크 (Frontend)
         run: pnpm --filter web type-check
-        continue-on-error: true
 
       - name: Ruff 린트 (Backend)
         working-directory: ./apps/api

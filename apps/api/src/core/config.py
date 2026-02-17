@@ -27,6 +27,7 @@ class Settings(BaseSettings):
 
     # JWT
     jwt_secret_key: str
+    jwt_refresh_secret_key: str = ""  # Falls back to jwt_secret_key if empty
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
@@ -67,7 +68,11 @@ class Settings(BaseSettings):
     rate_limit_external_search_daily: int = 20
 
     # Bcrypt
-    bcrypt_cost: int = Field(default=12, ge=4, le=31)
+    bcrypt_cost: int = Field(default=12, ge=10, le=31)
+
+    @property
+    def effective_refresh_secret(self) -> str:
+        return self.jwt_refresh_secret_key or self.jwt_secret_key
 
     @property
     def cors_origins_list(self) -> list[str]:

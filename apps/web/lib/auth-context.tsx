@@ -14,42 +14,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-const TOKEN_KEY = 'meal_planning_tokens'
-
-function getStoredTokens(): AuthTokens | null {
-  if (typeof window === 'undefined') return null
-  const stored = localStorage.getItem(TOKEN_KEY)
-  return stored ? JSON.parse(stored) : null
-}
-
-function storeTokens(tokens: AuthTokens) {
-  localStorage.setItem(TOKEN_KEY, JSON.stringify(tokens))
-}
-
-function clearTokens() {
-  localStorage.removeItem(TOKEN_KEY)
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  const clearSession = useCallback(() => {
+    api.setAccessToken(null)
+    setUser(null)
+  }, [])
 
   const fetchUser = useCallback(async () => {
     try {
       const response = await api.get<{ success: boolean; data: User }>('/users/me')
       setUser(response.data)
     } catch {
-      clearTokens()
-      api.setAccessToken(null)
-      setUser(null)
+      clearSession()
     }
-  }, [])
+  }, [clearSession])
+
+  useEffect(() => {
+    api.setOnAuthFailure(clearSession)
+  }, [clearSession])
 
   useEffect(() => {
     const initAuth = async () => {
-      const tokens = getStoredTokens()
-      if (tokens) {
-        api.setAccessToken(tokens.access_token)
+      // Try silent refresh via HttpOnly cookie
+      const refreshed = await api.silentRefresh()
+      if (refreshed) {
         await fetchUser()
       }
       setIsLoading(false)
@@ -65,7 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }>('/auth/login', { email, password })
 
     const { user: userData, tokens } = response.data
-    storeTokens(tokens)
     api.setAccessToken(tokens.access_token)
     setUser(userData)
   }
@@ -77,15 +67,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }>('/auth/register', { email, password, name })
 
     const { user: userData, tokens } = response.data
-    storeTokens(tokens)
     api.setAccessToken(tokens.access_token)
     setUser(userData)
   }
 
-  const logout = () => {
-    clearTokens()
-    api.setAccessToken(null)
-    setUser(null)
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // Clear local state even if server call fails
+    }
+    clearSession()
   }
 
   return (

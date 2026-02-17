@@ -288,7 +288,7 @@ class ExternalRecipeService:
             }
 
         # Fall back to live API search
-        await self._check_rate_limit(user_id)
+        await self._check_and_increment_rate_limit(user_id)
 
         results = []
         total = 0
@@ -329,8 +329,6 @@ class ExternalRecipeService:
                     total += seed_results.get("totalResults", 0)
                 except Exception as e:
                     logger.error(f"Korean seed search error: {e}")
-
-        await self._increment_rate_limit(user_id)
 
         # Translate English results to Korean
         # TheMealDB titles are proper food names - preserve them from mistranslation
@@ -602,22 +600,19 @@ class ExternalRecipeService:
         """Get available categories from TheMealDB."""
         return await themealdb_adapter.get_categories()
 
-    async def _check_rate_limit(self, user_id: str) -> None:
-        """Check daily rate limit."""
+    async def _check_and_increment_rate_limit(self, user_id: str) -> None:
+        """Atomically check and increment daily rate limit."""
         key = f"{RATE_LIMIT_KEY_PREFIX}:{user_id}:{date.today().isoformat()}"
-        count_str = await self.redis.get(key)
-        count = int(count_str) if count_str else 0
+        pipe = self.redis.pipeline()
+        pipe.incr(key)
+        pipe.expire(key, 86400)
+        results = await pipe.execute()
+        new_count = results[0]
 
-        if count >= settings.rate_limit_external_search_daily:
+        if new_count > settings.rate_limit_external_search_daily:
             raise RateLimitExceededError(
                 f"일일 외부 레시피 검색 한도({settings.rate_limit_external_search_daily}회)를 초과했습니다."
             )
-
-    async def _increment_rate_limit(self, user_id: str) -> None:
-        """Increment rate limit counter."""
-        key = f"{RATE_LIMIT_KEY_PREFIX}:{user_id}:{date.today().isoformat()}"
-        await self.redis.incr(key)
-        await self.redis.expire(key, 86400)
 
     async def _get_cached(self, key: str) -> dict[str, Any] | None:
         """Get cached result."""

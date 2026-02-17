@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -28,7 +29,7 @@ def create_access_token(
     expire = datetime.now(UTC) + (
         expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
     )
-    to_encode.update({"exp": expire, "type": "access"})
+    to_encode.update({"exp": expire, "type": "access", "jti": str(uuid.uuid4())})
     return jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
@@ -40,15 +41,22 @@ def create_refresh_token(
     expire = datetime.now(UTC) + (
         expires_delta or timedelta(days=settings.refresh_token_expire_days)
     )
-    to_encode.update({"exp": expire, "type": "refresh"})
-    return jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    to_encode.update({"exp": expire, "type": "refresh", "jti": str(uuid.uuid4())})
+    return jwt.encode(
+        to_encode, settings.effective_refresh_secret, algorithm=settings.jwt_algorithm
+    )
 
 
-def decode_token(token: str) -> dict[str, Any]:
+def decode_token(token: str, token_type: str = "access") -> dict[str, Any]:
+    secret = (
+        settings.effective_refresh_secret
+        if token_type == "refresh"
+        else settings.jwt_secret_key
+    )
     try:
         payload = jwt.decode(
             token,
-            settings.jwt_secret_key,
+            secret,
             algorithms=[settings.jwt_algorithm],
         )
         return payload

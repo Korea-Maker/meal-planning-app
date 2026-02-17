@@ -1,8 +1,10 @@
 from urllib.parse import urlparse
 
 import httpx
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
+
+from src.core.security import get_current_user_id
 
 router = APIRouter()
 
@@ -15,13 +17,18 @@ ALLOWED_DOMAINS = {
 
 
 @router.get("/image")
-async def proxy_image(url: str = Query(..., description="Image URL to proxy")):
+async def proxy_image(
+    url: str = Query(..., description="Image URL to proxy"),
+    _user_id: str = Depends(get_current_user_id),
+):
     """Proxy external images to bypass iOS native image loader issues."""
     parsed = urlparse(url)
     if parsed.hostname not in ALLOWED_DOMAINS:
         return Response(status_code=403, content=b"Domain not allowed")
 
-    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+    async with httpx.AsyncClient(
+        timeout=10.0, follow_redirects=True, max_redirects=3
+    ) as client:
         try:
             resp = await client.get(url)
         except httpx.RequestError:

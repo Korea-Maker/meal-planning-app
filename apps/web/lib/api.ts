@@ -32,6 +32,8 @@ class ApiHttpError extends Error {
 class ApiClient {
   private baseUrl: string
   private accessToken: string | null = null
+  private refreshPromise: Promise<boolean> | null = null
+  private onAuthFailure: (() => void) | null = null
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl
@@ -45,7 +47,11 @@ class ApiClient {
     return this.accessToken
   }
 
-  private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  setOnAuthFailure(callback: () => void) {
+    this.onAuthFailure = callback
+  }
+
+  private async request<T>(endpoint: string, options: RequestOptions = {}, isRetry = false): Promise<T> {
     const { method = 'GET', body, headers = {} } = options
 
     const requestHeaders: Record<string, string> = {
@@ -61,7 +67,19 @@ class ApiClient {
       method,
       headers: requestHeaders,
       body: body ? JSON.stringify(body) : undefined,
+      credentials: 'include',
     })
+
+    if (response.status === 401 && !isRetry && !endpoint.includes('/auth/')) {
+      const refreshed = await this.tryRefreshToken()
+      if (refreshed) {
+        return this.request<T>(endpoint, options, true)
+      }
+      if (this.onAuthFailure) {
+        this.onAuthFailure()
+      }
+      throw new ApiHttpError('Session expired', 401, 'AUTH_EXPIRED')
+    }
 
     if (!response.ok) {
       const error = (await response.json()) as ApiError
@@ -78,6 +96,46 @@ class ApiClient {
     }
 
     return response.json()
+  }
+
+  private async tryRefreshToken(): Promise<boolean> {
+    // Deduplicate concurrent refresh attempts
+    if (this.refreshPromise) {
+      return this.refreshPromise
+    }
+
+    this.refreshPromise = this._doRefresh()
+    try {
+      return await this.refreshPromise
+    } finally {
+      this.refreshPromise = null
+    }
+  }
+
+  private async _doRefresh(): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      })
+
+      if (!response.ok) return false
+
+      const result = await response.json()
+      const newAccessToken = result.data?.access_token
+      if (newAccessToken) {
+        this.accessToken = newAccessToken
+        return true
+      }
+      return false
+    } catch {
+      return false
+    }
+  }
+
+  async silentRefresh(): Promise<boolean> {
+    return this.tryRefreshToken()
   }
 
   async get<T>(endpoint: string): Promise<T> {

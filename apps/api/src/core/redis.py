@@ -74,6 +74,9 @@ class RedisClient:
     async def hdel(self, name: str, *keys: str) -> int:
         return await self.client.hdel(name, *keys)
 
+    def pipeline(self):
+        return self.client.pipeline()
+
 
 redis_client = RedisClient()
 

@@ -3,6 +3,7 @@ import ipaddress
 import json
 import logging
 import re
+import socket
 from datetime import date
 from typing import Any
 from urllib.parse import urlparse
@@ -62,19 +63,19 @@ class URLExtractorService:
             RateLimitExceededError: 일일 한도 초과
             URLExtractionError: 추출 실패
         """
-        await self._check_rate_limit(user_id)
-
         cache_key = self._get_cache_key(url)
         cached_result = await self._get_cached_result(cache_key)
         if cached_result:
             logger.info(f"Cache hit for URL: {url}")
             return cached_result
 
+        await self._check_and_increment_rate_limit(user_id)
+
         try:
             html_content = await self._fetch_url(url)
         except Exception as e:
             logger.error(f"Failed to fetch URL {url}: {e}")
-            raise URLExtractionError(f"URL을 가져올 수 없습니다: {e}") from e
+            raise URLExtractionError("URL을 가져올 수 없습니다. 주소를 확인해주세요.") from e
 
         schema_result = self._extract_schema_org(html_content)
         confidence = 0.0
@@ -89,17 +90,15 @@ class URLExtractorService:
                 recipe_data = await openai_adapter.extract_recipe_from_html(html_content, url)
                 confidence = 0.75
             except ValueError as e:
-                await self._increment_rate_limit(user_id)
-                raise URLExtractionError(f"레시피 추출 실패: {e}") from e
+                logger.warning(f"Recipe extraction failed for URL {url}: {e}")
+                raise URLExtractionError("레시피를 추출할 수 없습니다.") from e
             except Exception as e:
-                await self._increment_rate_limit(user_id)
                 logger.error(f"GPT extraction failed for URL {url}: {e}")
-                raise URLExtractionError(f"AI 처리 중 오류 발생: {e}") from e
+                raise URLExtractionError("AI 처리 중 오류가 발생했습니다.") from e
 
         try:
             recipe = self._convert_to_recipe_create(recipe_data, url)
         except Exception as e:
-            await self._increment_rate_limit(user_id)
             logger.error(f"Failed to convert recipe data: {e}")
 
             if "ingredients" in str(e).lower() and "too_short" in str(e).lower():
@@ -108,9 +107,7 @@ class URLExtractorService:
                     "개별 레시피 페이지의 URL을 입력해 주세요."
                 ) from e
 
-            raise URLExtractionError(f"레시피 데이터 변환 실패: {e}") from e
-
-        await self._increment_rate_limit(user_id)
+            raise URLExtractionError("레시피 데이터 변환에 실패했습니다.") from e
 
         response = URLExtractionResponse(
             success=True,
@@ -122,23 +119,20 @@ class URLExtractorService:
 
         return response
 
-    async def _check_rate_limit(self, user_id: str) -> None:
-        """일일 rate limit을 확인합니다."""
+    async def _check_and_increment_rate_limit(self, user_id: str) -> None:
+        """원자적으로 rate limit을 확인하고 증가시킵니다."""
         key = f"{RATE_LIMIT_KEY_PREFIX}:{user_id}:{date.today().isoformat()}"
-        count_str = await self.redis.get(key)
-        count = int(count_str) if count_str else 0
+        pipe = self.redis.pipeline()
+        pipe.incr(key)
+        pipe.expire(key, 86400)
+        results = await pipe.execute()
+        new_count = results[0]
 
-        if count >= settings.rate_limit_url_extraction_daily:
+        if new_count > settings.rate_limit_url_extraction_daily:
             raise RateLimitExceededError(
                 f"일일 URL 추출 한도({settings.rate_limit_url_extraction_daily}회)를 초과했습니다. "
                 "내일 다시 시도해주세요."
             )
-
-    async def _increment_rate_limit(self, user_id: str) -> None:
-        """rate limit 카운터를 증가시킵니다."""
-        key = f"{RATE_LIMIT_KEY_PREFIX}:{user_id}:{date.today().isoformat()}"
-        await self.redis.incr(key)
-        await self.redis.expire(key, 86400)
 
     def _get_cache_key(self, url: str) -> str:
         """URL에 대한 캐시 키를 생성합니다."""
@@ -228,7 +222,16 @@ class URLExtractorService:
                 if ip in network:
                     raise ValidationError("내부 네트워크 URL은 허용되지 않습니다")
         except ValueError:
-            pass
+            # hostname is not an IP literal — resolve DNS and check
+            try:
+                addrinfo = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC)
+                for family, _type, _proto, _canonname, sockaddr in addrinfo:
+                    resolved_ip = ipaddress.ip_address(sockaddr[0])
+                    for network in BLOCKED_NETWORKS:
+                        if resolved_ip in network:
+                            raise ValidationError("내부 네트워크 URL은 허용되지 않습니다")
+            except socket.gaierror:
+                raise ValidationError("URL의 호스트를 확인할 수 없습니다")
 
     async def _fetch_url(self, url: str) -> str:
         """URL에서 HTML 콘텐츠를 가져옵니다."""
@@ -247,6 +250,7 @@ class URLExtractorService:
         async with httpx.AsyncClient(
             follow_redirects=True,
             timeout=30.0,
+            max_redirects=5,
         ) as client:
             response = await client.get(url, headers=headers)
             response.raise_for_status()

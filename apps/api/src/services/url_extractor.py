@@ -225,7 +225,7 @@ class URLExtractorService:
             # hostname is not an IP literal — resolve DNS and check
             try:
                 addrinfo = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC)
-                for family, _type, _proto, _canonname, sockaddr in addrinfo:
+                for _family, _type, _proto, _canonname, sockaddr in addrinfo:
                     resolved_ip = ipaddress.ip_address(sockaddr[0])
                     for network in BLOCKED_NETWORKS:
                         if resolved_ip in network:

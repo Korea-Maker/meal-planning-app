@@ -83,10 +83,18 @@ class ExternalRecipeService:
         cached_spoonacular = None
         try:
             cached_themealdb = await self.cached_repo.get_discover(
-                category=category, cuisine=cuisine, source="themealdb", meal_type=meal_type, limit=per_source
+                category=category,
+                cuisine=cuisine,
+                source="themealdb",
+                meal_type=meal_type,
+                limit=per_source,
             )
             cached_spoonacular = await self.cached_repo.get_discover(
-                category=category, cuisine=cuisine, source="spoonacular", meal_type=meal_type, limit=per_source
+                category=category,
+                cuisine=cuisine,
+                source="spoonacular",
+                meal_type=meal_type,
+                limit=per_source,
             )
         except Exception:
             logger.debug("Cached recipes table not available, falling back to API")
@@ -106,13 +114,11 @@ class ExternalRecipeService:
                     if category:
                         cat_lower = category.lower()
                         all_seed = [
-                            r for r in all_seed
+                            r
+                            for r in all_seed
                             if cat_lower in [c.lower() for c in r.get("categories", [])]
                         ]
-                    seed_list = [
-                        r for r in all_seed
-                        if meal_type in r.get("meal_types", [])
-                    ]
+                    seed_list = [r for r in all_seed if meal_type in r.get("meal_types", [])]
                     import random as _random
 
                     _random.shuffle(seed_list)

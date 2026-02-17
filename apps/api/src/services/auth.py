@@ -101,9 +101,7 @@ class AuthService:
                 jti = payload.get("jti")
                 if jti:
                     ttl = settings.refresh_token_expire_days * 86400
-                    await self.redis.setex(
-                        f"{TOKEN_BLOCKLIST_PREFIX}:{jti}", ttl, "revoked"
-                    )
+                    await self.redis.setex(f"{TOKEN_BLOCKLIST_PREFIX}:{jti}", ttl, "revoked")
             except Exception:
                 pass  # Token may be invalid/expired — still clear the cookie
 
@@ -148,9 +146,7 @@ class AuthService:
             expires_in=settings.access_token_expire_minutes * 60,
         )
 
-    async def _check_login_rate_limit(
-        self, email: str, client_ip: str | None = None
-    ) -> None:
+    async def _check_login_rate_limit(self, email: str, client_ip: str | None = None) -> None:
         if not self.redis:
             return
 

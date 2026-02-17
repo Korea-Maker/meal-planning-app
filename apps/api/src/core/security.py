@@ -49,9 +49,7 @@ def create_refresh_token(
 
 def decode_token(token: str, token_type: str = "access") -> dict[str, Any]:
     secret = (
-        settings.effective_refresh_secret
-        if token_type == "refresh"
-        else settings.jwt_secret_key
+        settings.effective_refresh_secret if token_type == "refresh" else settings.jwt_secret_key
     )
     try:
         payload = jwt.decode(

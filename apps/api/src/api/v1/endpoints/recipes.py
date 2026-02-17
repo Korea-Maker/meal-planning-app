@@ -203,7 +203,9 @@ async def get_favorite_recipes(
 async def discover_recipes(
     category: str | None = None,
     cuisine: str | None = None,
-    meal_type: str | None = Query(None, description="Filter by meal type: breakfast, lunch, dinner, snack"),
+    meal_type: str | None = Query(
+        None, description="Filter by meal type: breakfast, lunch, dinner, snack"
+    ),
     number: Annotated[int, Query(ge=1, le=50)] = 20,
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),

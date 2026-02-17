@@ -26,9 +26,7 @@ async def proxy_image(
     if parsed.hostname not in ALLOWED_DOMAINS:
         return Response(status_code=403, content=b"Domain not allowed")
 
-    async with httpx.AsyncClient(
-        timeout=10.0, follow_redirects=True, max_redirects=3
-    ) as client:
+    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True, max_redirects=3) as client:
         try:
             resp = await client.get(url)
         except httpx.RequestError:

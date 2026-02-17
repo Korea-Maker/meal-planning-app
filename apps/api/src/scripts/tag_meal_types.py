@@ -39,9 +39,7 @@ async def tag_all_recipes(dry_run: bool = False) -> dict[str, int]:
 
     async with async_session_maker() as session:
         # Count total
-        count_result = await session.execute(
-            select(func.count()).select_from(CachedRecipe)
-        )
+        count_result = await session.execute(select(func.count()).select_from(CachedRecipe))
         total = count_result.scalar_one()
         stats["total"] = total
         logger.info(f"Total cached recipes: {total}")

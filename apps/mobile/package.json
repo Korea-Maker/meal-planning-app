@@ -15,7 +15,7 @@
   "dependencies": {
     "@meal-planning/shared-types": "workspace:*",
     "@react-native-async-storage/async-storage": "^2.2.0",
-    "@react-native-community/cli-platform-ios": "18.0.0",
+    "@react-native-community/cli-platform-ios": "20.1.1",
     "@react-native-vector-icons/fontawesome": "^12.4.0",
     "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.18",

@@ -32,8 +32,8 @@ importers:
         specifier: ^2.2.0
         version: 2.2.0(react-native@0.79.7(@babel/core@7.29.0)(@react-native-community/cli@17.0.1(typescript@5.0.4))(@types/react@19.2.13)(react@19.0.0))
       '@react-native-community/cli-platform-ios':
-        specifier: 18.0.0
-        version: 18.0.0
+        specifier: 20.1.1
+        version: 20.1.1
       '@react-native-vector-icons/fontawesome':
         specifier: ^12.4.0
         version: 12.4.0(react-native@0.79.7(@babel/core@7.29.0)(@react-native-community/cli@17.0.1(typescript@5.0.4))(@types/react@19.2.13)(react@19.0.0))(react@19.0.0)
@@ -2092,8 +2092,8 @@ packages:
   '@react-native-community/cli-config-apple@17.0.1':
     resolution: {integrity: sha512-byaowz9eai54X9Mqi6djsB30dYyopSOw1SCxb1T1H9x1j4MqKexMxTrGF3oV6D9/RkWbDoT4hG7uh9fP3O9tAg==}
 
-  '@react-native-community/cli-config-apple@18.0.0':
-    resolution: {integrity: sha512-6edjTt3mlNMFBuB/Xd6u0O7GEkhJiKvQgmcoBH18FsNy5cpiHDwQsG8EWM5cHeINp1gMK845qq9fFsTko6gqyQ==}
+  '@react-native-community/cli-config-apple@20.1.1':
+    resolution: {integrity: sha512-doepJgLJVqeJb5tNoP9hyFIcoZ1OMGO7QN/YMuCCIjbThUQe/J87XdwPol3Qrjr58KRt9xeBVz+kHeW5mtSutw==}
 
   '@react-native-community/cli-config@17.0.1':
     resolution: {integrity: sha512-5ZTKflLfmwgm8W0vcMi87mk3EK92uCMIJ/mTCcS46KKMIIpUtQpBxvj1kVy89mCQ8Mgc8C7GRnnrnuubDE6zaw==}
@@ -2107,14 +2107,14 @@ packages:
   '@react-native-community/cli-platform-apple@17.0.1':
     resolution: {integrity: sha512-+W4b2RBYW8LV/vKW+UoAowlVXBo17Nj8KeqtWPZq8SiXcQoJMZIVwmbceYb00X4h8jg3SEbjNbTHbUbt1jZqOg==}
 
-  '@react-native-community/cli-platform-apple@18.0.0':
-    resolution: {integrity: sha512-zD18gdP5Wr8BSLJ79xtHuPYcg2Vi/nL+WsGsPm7TZjzR5ZU2WbY/tZ+qTGVTQYhQaah+92sU+Dam7gStMrF/fA==}
+  '@react-native-community/cli-platform-apple@20.1.1':
+    resolution: {integrity: sha512-mQEjOzRFCcQTrCt73Q/+5WWTfUg6U2vLZv5rPuFiNrLbrwRqxVH3OLaXg5gilJkDTJC80z8iOSsdd8MRxONOig==}
 
   '@react-native-community/cli-platform-ios@17.0.1':
     resolution: {integrity: sha512-uRUzwwLnBl2zvLnAzO7oZ5NC/IliSpAJdxrodk/1h2PRxQGxpGxZ4QBChiQBLHmXgqoXPyqALyL54E0UyIo2wg==}
 
-  '@react-native-community/cli-platform-ios@18.0.0':
-    resolution: {integrity: sha512-05Nvkkre/4Gao1TYqyP1wGet8td1dAH0CLJKqLNl9Te6ihnrQ8/8OhjIna5xw0iEFr9An8VdLfaPu1Dgv2qAnQ==}
+  '@react-native-community/cli-platform-ios@20.1.1':
+    resolution: {integrity: sha512-6vr10/oSjKkZO/BBgfFJNQTC/0CDF4WrN8iW9ss+Kt6ZL2QrBXLYz7fobrrboOlHwqqs5EyQadlEaNii7gKRJg==}
 
   '@react-native-community/cli-server-api@17.0.1':
     resolution: {integrity: sha512-29sRkTItEA7eTVkkxZgMbO3iBGH39O+WCHY9E6futDSlDgP5PxQDxjZ/degcB05e3PRM2kyZcimqeiTs+T84pA==}
@@ -2122,8 +2122,8 @@ packages:
   '@react-native-community/cli-tools@17.0.1':
     resolution: {integrity: sha512-q2tjUMQadbikAttPPOkKV69dQz/Ju5xkJIPIU6TaF47jft5s8D9v1jc3R04LMKp+FvIlh4g/+pLvEzcv2b7OFA==}
 
-  '@react-native-community/cli-tools@18.0.0':
-    resolution: {integrity: sha512-oR6FcDEcSDYos79vZy4+Tj8jgAE0Xf5HEiRXMJFGISYLRx7tvslSaK8SodUOW9TZe2bCZOb5QSvj8zeMpORmxg==}
+  '@react-native-community/cli-tools@20.1.1':
+    resolution: {integrity: sha512-j+zX/H2X+6ZGneIDj56tZ1Hbnip5nSfnq7yGlMyF/zm3U1hKp3G1jN5v0YEfnz/zEmjr7zruh4Y06KmZrF1lrA==}
 
   '@react-native-community/cli-types@17.0.1':
     resolution: {integrity: sha512-b/UXRQpt7spcVsGYRCD2TsyNjPhtG4rsE00MmJYTixhqlkoruyzSCSyAPo+aKKdfQwBmqjrTF97q709NgJtOjg==}
@@ -5473,6 +5473,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  semver@7.7.4:
+    resolution: {integrity: sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   send@0.19.2:
     resolution: {integrity: sha512-VMbMxbDeehAxpOtWJXlcUS5E8iXh6QmN+BkRX1GARS3wRaXEEgzCcB10gTQazO42tpNIya8xIyNx8fll1OFPrg==}
     engines: {node: '>= 0.8.0'}
@@ -8175,12 +8180,12 @@ snapshots:
       execa: 5.1.1
       fast-glob: 3.3.3
 
-  '@react-native-community/cli-config-apple@18.0.0':
+  '@react-native-community/cli-config-apple@20.1.1':
     dependencies:
-      '@react-native-community/cli-tools': 18.0.0
-      chalk: 4.1.2
+      '@react-native-community/cli-tools': 20.1.1
       execa: 5.1.1
       fast-glob: 3.3.3
+      picocolors: 1.1.1
 
   '@react-native-community/cli-config@17.0.1(typescript@5.0.4)':
     dependencies:
@@ -8229,21 +8234,21 @@ snapshots:
       execa: 5.1.1
       fast-xml-parser: 4.5.3
 
-  '@react-native-community/cli-platform-apple@18.0.0':
+  '@react-native-community/cli-platform-apple@20.1.1':
     dependencies:
-      '@react-native-community/cli-config-apple': 18.0.0
-      '@react-native-community/cli-tools': 18.0.0
-      chalk: 4.1.2
+      '@react-native-community/cli-config-apple': 20.1.1
+      '@react-native-community/cli-tools': 20.1.1
       execa: 5.1.1
       fast-xml-parser: 4.5.3
+      picocolors: 1.1.1
 
   '@react-native-community/cli-platform-ios@17.0.1':
     dependencies:
       '@react-native-community/cli-platform-apple': 17.0.1
 
-  '@react-native-community/cli-platform-ios@18.0.0':
+  '@react-native-community/cli-platform-ios@20.1.1':
     dependencies:
-      '@react-native-community/cli-platform-apple': 18.0.0
+      '@react-native-community/cli-platform-apple': 20.1.1
 
   '@react-native-community/cli-server-api@17.0.1':
     dependencies:
@@ -8275,18 +8280,18 @@ snapshots:
       prompts: 2.4.2
       semver: 7.7.3
 
-  '@react-native-community/cli-tools@18.0.0':
+  '@react-native-community/cli-tools@20.1.1':
     dependencies:
       '@vscode/sudo-prompt': 9.3.2
       appdirsjs: 1.2.7
-      chalk: 4.1.2
       execa: 5.1.1
       find-up: 5.0.0
       launch-editor: 2.12.0
       mime: 2.6.0
       ora: 5.4.1
+      picocolors: 1.1.1
       prompts: 2.4.2
-      semver: 7.7.3
+      semver: 7.7.4
 
   '@react-native-community/cli-types@17.0.1':
     dependencies:
@@ -8482,9 +8487,7 @@ snapshots:
       metro-runtime: 0.82.5
     transitivePeerDependencies:
       - '@babel/core'
-      - bufferutil
       - supports-color
-      - utf-8-validate
 
   '@react-native/normalize-colors@0.79.7': {}
 
@@ -8903,7 +8906,7 @@ snapshots:
       debug: 4.4.3
       globby: 11.1.0
       is-glob: 4.0.3
-      semver: 7.7.3
+      semver: 7.7.4
       tsutils: 3.21.0(typescript@5.0.4)
     optionalDependencies:
       typescript: 5.0.4
@@ -10813,7 +10816,7 @@ snapshots:
       '@babel/parser': 7.29.0
       '@istanbuljs/schema': 0.1.3
       istanbul-lib-coverage: 3.2.2
-      semver: 7.7.3
+      semver: 7.7.4
     transitivePeerDependencies:
       - supports-color
 
@@ -11299,7 +11302,7 @@ snapshots:
 
   make-dir@4.0.0:
     dependencies:
-      semver: 7.7.3
+      semver: 7.7.4
 
   makeerror@1.0.12:
     dependencies:
@@ -12268,6 +12271,8 @@ snapshots:
   semver@7.7.2: {}
 
   semver@7.7.3: {}
+
+  semver@7.7.4: {}
 
   send@0.19.2:
     dependencies:

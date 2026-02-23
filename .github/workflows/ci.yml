@@ -18,24 +18,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
 
       - name: pnpm 설치
-        uses: pnpm/action-setup@v4.0.0
+        uses: pnpm/action-setup@v4.2.0
 
       - name: Node.js 설정
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v6.2.0
         with:
           node-version: '20'
           cache: 'pnpm'
 
       - name: Python 설정
-        uses: actions/setup-python@v5.3.0
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: uv 설치
-        uses: astral-sh/setup-uv@v4.1.0
+        uses: astral-sh/setup-uv@v7.3.0
         with:
           enable-cache: true
           cache-dependency-glob: "apps/api/uv.lock"
@@ -72,13 +72,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
 
       - name: pnpm 설치
-        uses: pnpm/action-setup@v4.0.0
+        uses: pnpm/action-setup@v4.2.0
 
       - name: Node.js 설정
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v6.2.0
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -99,7 +99,7 @@ jobs:
 
       - name: Playwright 리포트 업로드
         if: always()
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report
           path: apps/web/playwright-report/
@@ -107,7 +107,7 @@ jobs:
 
       - name: 테스트 커버리지 업로드
         if: always()
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-web
           path: apps/web/coverage/
@@ -143,15 +143,15 @@ jobs:
 
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
 
       - name: Python 설정
-        uses: actions/setup-python@v5.3.0
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: uv 설치
-        uses: astral-sh/setup-uv@v4.1.0
+        uses: astral-sh/setup-uv@v7.3.0
         with:
           enable-cache: true
           cache-dependency-glob: "apps/api/uv.lock"
@@ -171,7 +171,7 @@ jobs:
 
       - name: 테스트 커버리지 업로드
         if: always()
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-api
           path: apps/api/htmlcov/
@@ -179,7 +179,7 @@ jobs:
 
       - name: 커버리지 리포트 업로드 (Codecov)
         if: always()
-        uses: codecov/codecov-action@v5.1.2
+        uses: codecov/codecov-action@v5.5.2
         with:
           files: ./apps/api/coverage.xml
           flags: backend
@@ -192,24 +192,24 @@ jobs:
     needs: [lint-and-type-check, test-web, test-api]
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
 
       - name: pnpm 설치
-        uses: pnpm/action-setup@v4.0.0
+        uses: pnpm/action-setup@v4.2.0
 
       - name: Node.js 설정
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v6.2.0
         with:
           node-version: '20'
           cache: 'pnpm'
 
       - name: Python 설정
-        uses: actions/setup-python@v5.3.0
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: uv 설치
-        uses: astral-sh/setup-uv@v4.1.0
+        uses: astral-sh/setup-uv@v7.3.0
         with:
           enable-cache: true
           cache-dependency-glob: "apps/api/uv.lock"
@@ -246,7 +246,7 @@ jobs:
 
       - name: 빌드 아티팩트 업로드
         if: success()
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v6
         with:
           name: build-artifacts
           path: |

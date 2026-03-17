@@ -23,7 +23,7 @@ export interface UserProfile {
 // Recipe Types
 export interface Recipe {
   id: string
-  user_id: string
+  user_id: string | null
   title: string
   description: string | null
   image_url: string | null
@@ -44,6 +44,7 @@ export interface Recipe {
   nutrition_fetched: string | null
   created_at: string
   updated_at: string
+  source_type?: 'user' | 'cached'
 }
 
 export type RecipeDifficulty = 'easy' | 'medium' | 'hard'

@@ -1,6 +1,8 @@
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import RecipeNotFoundError
+from src.models.cached_recipe import CachedRecipe
 from src.models.recipe import Recipe
 from src.repositories.recipe import RecipeRepository
 from src.schemas.common import PaginationMeta
@@ -154,20 +156,17 @@ class RecipeService:
         difficulty: str | None = None,
         page: int = 1,
         limit: int = 20,
-    ) -> tuple[list[Recipe], PaginationMeta]:
-        """Browse all recipes (not filtered by user_id) for discovery"""
+    ) -> tuple[list[dict], PaginationMeta]:
+        """Browse recipes from both recipes and cached_recipes tables."""
         skip = (page - 1) * limit
 
-        if query or categories or difficulty:
-            recipes, total = await self.recipe_repo.search_all(
-                query=query,
-                categories=categories,
-                difficulty=difficulty,
-                skip=skip,
-                limit=limit,
-            )
-        else:
-            recipes, total = await self.recipe_repo.get_all_recipes(skip, limit)
+        rows, total = await self.recipe_repo.get_all_combined(
+            query=query,
+            categories=categories,
+            difficulty=difficulty,
+            skip=skip,
+            limit=limit,
+        )
 
         meta = PaginationMeta(
             total=total,
@@ -176,4 +175,125 @@ class RecipeService:
             total_pages=(total + limit - 1) // limit,
         )
 
-        return recipes, meta
+        return rows, meta
+
+    async def get_recipe_or_cached_public(self, recipe_id: str) -> tuple[dict, bool]:
+        """Get recipe by ID from recipes table first, then cached_recipes. Returns (data_dict, is_cached)."""
+        recipe = await self.recipe_repo.get_by_id_with_details(recipe_id)
+        if recipe:
+            data = {
+                "id": recipe.id,
+                "user_id": recipe.user_id,
+                "title": recipe.title,
+                "description": recipe.description,
+                "image_url": recipe.image_url,
+                "prep_time_minutes": recipe.prep_time_minutes,
+                "cook_time_minutes": recipe.cook_time_minutes,
+                "servings": recipe.servings,
+                "difficulty": recipe.difficulty,
+                "categories": recipe.categories or [],
+                "tags": recipe.tags or [],
+                "source_url": recipe.source_url,
+                "external_source": recipe.external_source,
+                "external_id": recipe.external_id,
+                "calories": recipe.calories,
+                "protein_grams": float(recipe.protein_grams) if recipe.protein_grams is not None else None,
+                "carbs_grams": float(recipe.carbs_grams) if recipe.carbs_grams is not None else None,
+                "fat_grams": float(recipe.fat_grams) if recipe.fat_grams is not None else None,
+                "created_at": recipe.created_at,
+                "updated_at": recipe.updated_at,
+                "source_type": "user",
+                "ingredients": [
+                    {
+                        "id": ing.id,
+                        "recipe_id": ing.recipe_id,
+                        "name": ing.name,
+                        "amount": float(ing.amount),
+                        "unit": ing.unit,
+                        "notes": ing.notes,
+                        "order_index": ing.order_index,
+                        "created_at": ing.created_at,
+                        "updated_at": ing.updated_at,
+                    }
+                    for ing in recipe.ingredients
+                ],
+                "instructions": [
+                    {
+                        "id": inst.id,
+                        "recipe_id": inst.recipe_id,
+                        "step_number": inst.step_number,
+                        "description": inst.description,
+                        "image_url": inst.image_url,
+                        "created_at": inst.created_at,
+                        "updated_at": inst.updated_at,
+                    }
+                    for inst in recipe.instructions
+                ],
+            }
+            return data, False
+
+        # Try cached_recipes
+        result = await self.session.execute(
+            select(CachedRecipe).where(CachedRecipe.id == recipe_id)
+        )
+        cached = result.scalar_one_or_none()
+        if not cached:
+            raise RecipeNotFoundError(recipe_id)
+
+        ingredients_json = cached.ingredients_json or []
+        instructions_json = cached.instructions_json or []
+
+        ingredients = [
+            {
+                "id": f"cached-{cached.id}-ing-{i}",
+                "recipe_id": cached.id,
+                "name": ing.get("name", ""),
+                "amount": float(ing.get("amount", 0)),
+                "unit": ing.get("unit", ""),
+                "notes": ing.get("notes"),
+                "order_index": ing.get("order_index", i),
+                "created_at": cached.fetched_at,
+                "updated_at": cached.fetched_at,
+            }
+            for i, ing in enumerate(ingredients_json)
+        ]
+
+        instructions = [
+            {
+                "id": f"cached-{cached.id}-inst-{i}",
+                "recipe_id": cached.id,
+                "step_number": inst.get("step_number", i + 1),
+                "description": inst.get("description", ""),
+                "image_url": inst.get("image_url"),
+                "created_at": cached.fetched_at,
+                "updated_at": cached.fetched_at,
+            }
+            for i, inst in enumerate(instructions_json)
+        ]
+
+        data = {
+            "id": cached.id,
+            "user_id": None,
+            "title": cached.title,
+            "description": cached.description,
+            "image_url": cached.image_url,
+            "prep_time_minutes": cached.prep_time_minutes,
+            "cook_time_minutes": cached.cook_time_minutes,
+            "servings": cached.servings,
+            "difficulty": cached.difficulty,
+            "categories": cached.categories or [],
+            "tags": cached.tags or [],
+            "source_url": cached.source_url,
+            "external_source": cached.external_source,
+            "external_id": cached.external_id,
+            "calories": cached.calories,
+            "protein_grams": cached.protein_grams,
+            "carbs_grams": cached.carbs_grams,
+            "fat_grams": cached.fat_grams,
+            "created_at": cached.fetched_at,
+            "updated_at": cached.fetched_at,
+            "source_type": "cached",
+            "ingredients": ingredients,
+            "instructions": instructions,
+        }
+        return data, True

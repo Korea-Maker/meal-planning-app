@@ -8,6 +8,8 @@ from src.core.redis import RedisClient, get_redis
 from src.core.security import get_current_user_id
 from src.schemas.common import ApiResponse, PaginatedResponse
 from src.schemas.recipe import (
+    BrowseRecipeResponse,
+    BrowseRecipeWithDetailsResponse,
     DiscoverRecipesResponse,
     ExternalRecipeDetail,
     ExternalRecipeSource,
@@ -108,7 +110,7 @@ async def search_recipes(
     )
 
 
-@router.get("/browse", response_model=PaginatedResponse[RecipeResponse])
+@router.get("/browse", response_model=PaginatedResponse[BrowseRecipeResponse])
 async def browse_all_recipes(
     query: str | None = None,
     categories: Annotated[list[RecipeCategory] | None, Query()] = None,
@@ -119,13 +121,13 @@ async def browse_all_recipes(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Browse all recipes from all users (not filtered by user_id).
+    Browse recipes from both recipes and cached_recipes tables.
 
-    This endpoint allows users to discover recipes created by other users.
-    Useful for finding inspiration from the 507 Korean recipes in the database.
+    Combines user-created recipes with pre-fetched external recipes (1500+).
+    Deduplicates entries that were already imported by users.
     """
     service = RecipeService(db)
-    recipes, meta = await service.browse_recipes(
+    rows, meta = await service.browse_recipes(
         query=query,
         categories=categories,
         difficulty=difficulty,
@@ -135,12 +137,12 @@ async def browse_all_recipes(
 
     return PaginatedResponse(
         success=True,
-        data=[RecipeResponse.model_validate(r) for r in recipes],
+        data=[BrowseRecipeResponse(**r) for r in rows],
         meta=meta,
     )
 
 
-@router.get("/browse/{recipe_id}", response_model=ApiResponse[RecipeWithDetailsResponse])
+@router.get("/browse/{recipe_id}", response_model=ApiResponse[BrowseRecipeWithDetailsResponse])
 async def get_browse_recipe(
     recipe_id: str,
     user_id: str = Depends(get_current_user_id),
@@ -149,14 +151,14 @@ async def get_browse_recipe(
     """
     Get recipe detail without ownership check (for browsing).
 
-    This endpoint allows users to view recipes created by other users.
+    Works for both user-created and cached external recipes.
     """
     service = RecipeService(db)
-    recipe = await service.get_recipe_public(recipe_id)
+    data, _is_cached = await service.get_recipe_or_cached_public(recipe_id)
 
     return ApiResponse(
         success=True,
-        data=RecipeWithDetailsResponse.model_validate(recipe),
+        data=BrowseRecipeWithDetailsResponse(**data),
     )
 
 

@@ -358,66 +358,79 @@ function RecipeGridSection({
 
       {/* Recipe Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {recipes.map((recipe) => (
-          <Card
-            key={recipe.id}
-            className="group cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 h-full relative overflow-hidden"
-          >
-            <Link href={`/recipes/${recipe.id}`} className="block">
-              <div className="aspect-video bg-muted rounded-t-2xl overflow-hidden relative">
-                <RecipeImage
-                  src={recipe.image_url}
-                  alt={recipe.title}
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
-                    {recipe.title}
-                  </CardTitle>
-                  <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${DIFFICULTY_COLORS[recipe.difficulty]}`}>
-                    {DIFFICULTY_LABELS[recipe.difficulty]}
-                  </span>
+        {recipes.map((recipe) => {
+          const isCached = recipe.source_type === 'cached' || recipe.user_id === null
+          return (
+            <Card
+              key={recipe.id}
+              className="group cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 h-full relative overflow-hidden"
+            >
+              <Link href={`/recipes/${recipe.id}`} className="block">
+                <div className="aspect-video bg-muted rounded-t-2xl overflow-hidden relative">
+                  <RecipeImage
+                    src={recipe.image_url}
+                    alt={recipe.title}
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  {isCached && (
+                    <div className="absolute top-2 left-2">
+                      <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-black/60 text-white rounded-full backdrop-blur-sm">
+                        <Globe className="h-3 w-3" />
+                        외부
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <CardDescription className="flex items-center gap-3 text-sm">
-                  {recipe.cook_time_minutes && (
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
+                      {recipe.title}
+                    </CardTitle>
+                    <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${DIFFICULTY_COLORS[recipe.difficulty]}`}>
+                      {DIFFICULTY_LABELS[recipe.difficulty]}
+                    </span>
+                  </div>
+                  <CardDescription className="flex items-center gap-3 text-sm">
+                    {recipe.cook_time_minutes && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {(recipe.prep_time_minutes || 0) + recipe.cook_time_minutes}분
+                      </span>
+                    )}
                     <span className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      {(recipe.prep_time_minutes || 0) + recipe.cook_time_minutes}분
+                      <Users className="h-3.5 w-3.5" />
+                      {recipe.servings}인분
                     </span>
-                  )}
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5" />
-                    {recipe.servings}인분
-                  </span>
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-0">
-                <RecipeStats recipeId={recipe.id} compact />
-                <div className="flex flex-wrap gap-1.5">
-                  {recipe.categories.slice(0, 3).map((category) => (
-                    <span
-                      key={category}
-                      className={`px-2.5 py-1 text-xs rounded-full font-medium ${CATEGORY_COLORS[category] || 'bg-muted text-muted-foreground'}`}
-                    >
-                      {CATEGORY_LABELS[category] || category}
-                    </span>
-                  ))}
-                  {recipe.categories.length > 3 && (
-                    <span className="px-2.5 py-1 text-xs rounded-full bg-muted text-muted-foreground font-medium">
-                      +{recipe.categories.length - 3}
-                    </span>
-                  )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-0">
+                  {!isCached && <RecipeStats recipeId={recipe.id} compact />}
+                  <div className="flex flex-wrap gap-1.5">
+                    {recipe.categories.slice(0, 3).map((category) => (
+                      <span
+                        key={category}
+                        className={`px-2.5 py-1 text-xs rounded-full font-medium ${CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS] || 'bg-muted text-muted-foreground'}`}
+                      >
+                        {CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS] || category}
+                      </span>
+                    ))}
+                    {recipe.categories.length > 3 && (
+                      <span className="px-2.5 py-1 text-xs rounded-full bg-muted text-muted-foreground font-medium">
+                        +{recipe.categories.length - 3}
+                      </span>
+                    )}
+                  </div>
+                </CardContent>
+              </Link>
+              {!isCached && (
+                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-y-1 group-hover:translate-y-0">
+                  <FavoriteButton recipeId={recipe.id} size="sm" />
                 </div>
-              </CardContent>
-            </Link>
-            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-y-1 group-hover:translate-y-0">
-              <FavoriteButton recipeId={recipe.id} size="sm" />
-            </div>
-          </Card>
-        ))}
+              )}
+            </Card>
+          )
+        })}
       </div>
 
       {/* Pagination */}

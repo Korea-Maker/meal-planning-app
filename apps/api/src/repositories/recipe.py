@@ -1,9 +1,11 @@
 from typing import Any
 
-from sqlalchemy import case, func, select
+from sqlalchemy import cast, case, exists, func, literal, null, select, union_all
+from sqlalchemy import Float as SAFloat
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.models.cached_recipe import CachedRecipe
 from src.models.ingredient import Ingredient
 from src.models.instruction import Instruction
 from src.models.recipe import Recipe
@@ -199,3 +201,108 @@ class RecipeRepository(BaseRepository[Recipe]):
         recipes = list(result.scalars().all())
 
         return recipes, total
+
+    async def get_all_combined(
+        self,
+        query: str | None = None,
+        categories: list[str] | None = None,
+        difficulty: str | None = None,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> tuple[list[dict], int]:
+        """Get recipes from both recipes and cached_recipes tables, deduplicating by external_source+external_id."""
+        search_pattern = f"%{query}%" if query else None
+
+        # --- recipes branch ---
+        recipes_q = select(
+            Recipe.id,
+            Recipe.user_id,
+            Recipe.title,
+            Recipe.description,
+            Recipe.image_url,
+            Recipe.prep_time_minutes,
+            Recipe.cook_time_minutes,
+            Recipe.servings,
+            Recipe.difficulty,
+            Recipe.categories,
+            Recipe.tags,
+            Recipe.source_url,
+            Recipe.external_source,
+            Recipe.external_id,
+            Recipe.calories,
+            cast(Recipe.protein_grams, SAFloat).label("protein_grams"),
+            cast(Recipe.carbs_grams, SAFloat).label("carbs_grams"),
+            cast(Recipe.fat_grams, SAFloat).label("fat_grams"),
+            Recipe.created_at,
+            Recipe.updated_at,
+            literal("user").label("source_type"),
+        )
+        if search_pattern:
+            recipes_q = recipes_q.where(Recipe.title.ilike(search_pattern))
+        if categories:
+            recipes_q = recipes_q.where(Recipe.categories.overlap(categories))
+        if difficulty:
+            recipes_q = recipes_q.where(Recipe.difficulty == difficulty)
+
+        # --- cached_recipes branch (exclude those already imported into recipes) ---
+        cached_q = select(
+            CachedRecipe.id,
+            null().label("user_id"),
+            CachedRecipe.title,
+            CachedRecipe.description,
+            CachedRecipe.image_url,
+            CachedRecipe.prep_time_minutes,
+            CachedRecipe.cook_time_minutes,
+            CachedRecipe.servings,
+            CachedRecipe.difficulty,
+            CachedRecipe.categories,
+            CachedRecipe.tags,
+            CachedRecipe.source_url,
+            CachedRecipe.external_source,
+            CachedRecipe.external_id,
+            CachedRecipe.calories,
+            CachedRecipe.protein_grams,
+            CachedRecipe.carbs_grams,
+            CachedRecipe.fat_grams,
+            CachedRecipe.fetched_at.label("created_at"),
+            CachedRecipe.fetched_at.label("updated_at"),
+            literal("cached").label("source_type"),
+        ).where(
+            ~exists(
+                select(literal(1)).where(
+                    Recipe.external_source == CachedRecipe.external_source,
+                    Recipe.external_id == CachedRecipe.external_id,
+                )
+            )
+        )
+        if search_pattern:
+            cached_q = cached_q.where(
+                CachedRecipe.title.ilike(search_pattern)
+                | CachedRecipe.title_original.ilike(search_pattern)
+            )
+        if categories:
+            cached_q = cached_q.where(CachedRecipe.categories.overlap(categories))
+        if difficulty:
+            cached_q = cached_q.where(CachedRecipe.difficulty == difficulty)
+
+        # --- UNION ALL ---
+        combined = union_all(recipes_q, cached_q).subquery()
+
+        # Count total
+        count_result = await self.session.execute(select(func.count()).select_from(combined))
+        total = count_result.scalar_one()
+
+        # Order: images first, then newest first
+        image_priority = case(
+            (combined.c.image_url.isnot(None) & (combined.c.image_url != ""), 0),
+            else_=1,
+        )
+        paginated = (
+            select(combined)
+            .order_by(image_priority, combined.c.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await self.session.execute(paginated)
+        rows = [dict(row._mapping) for row in result]
+        return rows, total

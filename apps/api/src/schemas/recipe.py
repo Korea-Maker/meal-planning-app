@@ -73,6 +73,37 @@ class RecipeWithDetailsResponse(RecipeResponse):
     instructions: list[InstructionResponse]
 
 
+class BrowseRecipeResponse(BaseModel):
+    id: str
+    user_id: str | None = None
+    title: str
+    description: str | None = None
+    image_url: str | None = None
+    prep_time_minutes: int | None = None
+    cook_time_minutes: int | None = None
+    servings: int = 4
+    difficulty: RecipeDifficulty = "medium"
+    categories: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    source_url: str | None = None
+    external_source: ExternalSource | None = None
+    external_id: str | None = None
+    calories: int | None = None
+    protein_grams: float | None = None
+    carbs_grams: float | None = None
+    fat_grams: float | None = None
+    created_at: datetime
+    updated_at: datetime
+    source_type: Literal["user", "cached"] = "user"
+
+    model_config = {"from_attributes": True}
+
+
+class BrowseRecipeWithDetailsResponse(BrowseRecipeResponse):
+    ingredients: list[IngredientResponse] = Field(default_factory=list)
+    instructions: list[InstructionResponse] = Field(default_factory=list)
+
+
 class RecipeSearchParams(BaseModel):
     query: str | None = None
     categories: list[RecipeCategory] | None = None

@@ -15,6 +15,8 @@ import {
   Plus,
   ExternalLink,
   Loader2,
+  Globe,
+  Download,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -138,6 +140,7 @@ export default function RecipeDetailPage({ params }: Props) {
     )
   }
 
+  const isCached = recipe.source_type === 'cached' || recipe.user_id === null
   const totalTime = (recipe.prep_time_minutes ?? 0) + (recipe.cook_time_minutes ?? 0)
 
   return (
@@ -149,48 +152,67 @@ export default function RecipeDetailPage({ params }: Props) {
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold">{recipe.title}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold">{recipe.title}</h1>
+            {isCached && (
+              <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground rounded-full">
+                <Globe className="h-3 w-3" />
+                외부 레시피
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <FavoriteButton recipeId={id} variant="icon" size="md" />
+          {!isCached && <FavoriteButton recipeId={id} variant="icon" size="md" />}
           <Button variant="outline" size="icon" onClick={handleShare}>
             <Share2 className="h-4 w-4" />
           </Button>
-          <Button variant="outline" asChild>
-            <Link href={`/recipes/${id}/edit`}>
-              <Edit className="h-4 w-4 mr-2" />
-              수정
-            </Link>
-          </Button>
-          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="destructive">
-                <Trash2 className="h-4 w-4 mr-2" />
-                삭제
+          {isCached ? (
+            <Button variant="outline" asChild>
+              <Link href={`/recipes/import?source=${recipe.external_source}&id=${recipe.external_id}`}>
+                <Download className="h-4 w-4 mr-2" />
+                가져오기
+              </Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" asChild>
+                <Link href={`/recipes/${id}/edit`}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  수정
+                </Link>
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>레시피 삭제</DialogTitle>
-                <DialogDescription>
-                  정말로 이 레시피를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                  취소
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={deleteRecipe.isPending}
-                >
-                  {deleteRecipe.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  삭제
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    삭제
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>레시피 삭제</DialogTitle>
+                    <DialogDescription>
+                      정말로 이 레시피를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                      취소
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDelete}
+                      disabled={deleteRecipe.isPending}
+                    >
+                      {deleteRecipe.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      삭제
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
         </div>
       </div>
 
@@ -207,7 +229,7 @@ export default function RecipeDetailPage({ params }: Props) {
           )}
 
           {/* Recipe Stats */}
-          <RecipeStats recipeId={id} />
+          {!isCached && <RecipeStats recipeId={id} />}
 
           {recipe.description && (
             <Card>
@@ -221,29 +243,31 @@ export default function RecipeDetailPage({ params }: Props) {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>재료</span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={decreaseServings}
-                    disabled={currentServings <= 1}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm font-normal w-16 text-center">
-                    {currentServings}인분
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={increaseServings}
-                    disabled={currentServings >= 100}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
+                {!isCached && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={decreaseServings}
+                      disabled={currentServings <= 1}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-normal w-16 text-center">
+                      {currentServings}인분
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={increaseServings}
+                      disabled={currentServings >= 100}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -447,14 +471,16 @@ export default function RecipeDetailPage({ params }: Props) {
           )}
 
           {/* Rating Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">평점</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RatingForm recipeId={id} />
-            </CardContent>
-          </Card>
+          {!isCached && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">평점</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RatingForm recipeId={id} />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

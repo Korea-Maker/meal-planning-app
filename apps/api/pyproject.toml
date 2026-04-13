@@ -15,7 +15,7 @@ dependencies = [
     "alembic>=1.14.0",
 
     # Redis
-    "redis>=5.2.0",
+    "redis>=7.4.0",
 
     # Auth
     "pyjwt>=2.10.1",

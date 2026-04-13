@@ -24,7 +24,7 @@ dependencies = [
 
     # Validation
     "pydantic>=2.10.0",
-    "pydantic-settings>=2.7.0",
+    "pydantic-settings>=2.13.1",
     "email-validator>=2.2.0",
 
     # AI & External APIs
